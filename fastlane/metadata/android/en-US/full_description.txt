@@ -1,8 +1,12 @@
-HalfRotate keeps Android auto-rotation enabled but blocks upside-down (180°) and reverse landscape (270°). Only portrait (0°) and landscape (90°) are allowed.
+HalfRotate filters Android system auto-rotation to the orientations you choose: portrait + landscape (default), portrait only, landscape only, or all except upside down.
+
+While the filter is active, system auto-rotate is locked and HalfRotate rotates directly between allowed orientations — no flash through blocked angles.
 
 <b>Features</b>
+• Four rotation presets
+• Optional force auto-rotation when system auto-rotate is off
+• Anti-flicker proactive rotation engine
 • No root required
-• Respects system auto-rotate when you turn it off
 • Quick Settings tile
 • Restores after reboot
 • No ads, no tracking
@@ -12,4 +16,4 @@ HalfRotate keeps Android auto-rotation enabled but blocks upside-down (180°) an
 • Modify system settings — rotation only
 • Foreground service — while filter is active, with notification
 
-<b>Note:</b> A brief screen flash may occur when correcting 270° to 90°. This is a system limitation without root.
+<b>Note:</b> Some apps force their own orientation and may ignore system rotation.

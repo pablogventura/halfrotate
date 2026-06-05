@@ -11,6 +11,8 @@
 package dev.pablo.halfrotate.ui
 
 import android.Manifest
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -19,6 +21,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,6 +30,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -34,13 +39,16 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -51,11 +59,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pablo.halfrotate.R
+import dev.pablo.halfrotate.rotation.OrientationPreset
 import dev.pablo.halfrotate.ui.theme.HalfRotateTheme
 import dev.pablo.halfrotate.util.PermissionsHelper
-import android.content.Intent
-import android.net.Uri
-import androidx.compose.material3.TopAppBarDefaults
 
 class MainActivity : ComponentActivity() {
 
@@ -78,6 +84,7 @@ class MainActivity : ComponentActivity() {
                     MainScreen(
                         uiState = uiState,
                         rotationLabelRes = viewModel.rotationLabelRes(uiState.currentRotation),
+                        allowedSummaryRes = viewModel.allowedSummaryRes(uiState.orientationPreset),
                         onGrantWriteSettings = {
                             startActivity(PermissionsHelper.writeSettingsIntent(this))
                         },
@@ -88,6 +95,8 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
                         },
+                        onPresetSelected = viewModel::setOrientationPreset,
+                        onForceAutoRotateChanged = viewModel::setForceSystemAutoRotate,
                         onToggleFilter = { enable ->
                             viewModel.toggleFilter(enable)
                         },
@@ -120,13 +129,16 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 private fun MainScreen(
     uiState: MainUiState,
     rotationLabelRes: Int,
+    allowedSummaryRes: Int,
     onGrantWriteSettings: () -> Unit,
     onGrantNotifications: () -> Unit,
+    onPresetSelected: (OrientationPreset) -> Unit,
+    onForceAutoRotateChanged: (Boolean) -> Unit,
     onToggleFilter: (Boolean) -> Unit,
     onBatteryOptimization: () -> Unit,
     onAutostart: () -> Unit,
@@ -187,6 +199,13 @@ private fun MainScreen(
                 )
             }
 
+            ConfigurationSection(
+                uiState = uiState,
+                allowedSummaryRes = allowedSummaryRes,
+                onPresetSelected = onPresetSelected,
+                onForceAutoRotateChanged = onForceAutoRotateChanged,
+            )
+
             StatusCard(uiState = uiState, rotationLabelRes = rotationLabelRes)
 
             Button(
@@ -229,6 +248,83 @@ private fun MainScreen(
             }
         }
     }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ConfigurationSection(
+    uiState: MainUiState,
+    allowedSummaryRes: Int,
+    onPresetSelected: (OrientationPreset) -> Unit,
+    onForceAutoRotateChanged: (Boolean) -> Unit,
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            Modifier
+                .padding(16.dp)
+                .selectableGroup(),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                stringResource(R.string.config_section_title),
+                fontWeight = FontWeight.SemiBold,
+            )
+
+            Text(
+                stringResource(R.string.config_preset_label),
+                style = MaterialTheme.typography.labelLarge,
+            )
+
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OrientationPreset.entries.forEach { preset ->
+                    FilterChip(
+                        selected = uiState.orientationPreset == preset,
+                        onClick = { onPresetSelected(preset) },
+                        label = { Text(stringResource(presetLabelRes(preset))) },
+                    )
+                }
+            }
+
+            Text(
+                stringResource(R.string.config_allowed_summary, stringResource(allowedSummaryRes)),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        stringResource(R.string.config_force_auto_rotate),
+                        fontWeight = FontWeight.Medium,
+                    )
+                    Text(
+                        stringResource(R.string.config_force_auto_rotate_desc),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = uiState.forceSystemAutoRotate,
+                    onCheckedChange = onForceAutoRotateChanged,
+                    enabled = uiState.writeSettingsGranted,
+                )
+            }
+        }
+    }
+}
+
+private fun presetLabelRes(preset: OrientationPreset): Int = when (preset) {
+    OrientationPreset.PortraitAndLandscape -> R.string.preset_portrait_landscape
+    OrientationPreset.PortraitOnly -> R.string.preset_portrait_only
+    OrientationPreset.LandscapeOnly -> R.string.preset_landscape_only
+    OrientationPreset.AllExceptUpsideDown -> R.string.preset_no_upside_down
 }
 
 @Composable
@@ -369,7 +465,9 @@ private fun FaqSection() {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.faq_title), fontWeight = FontWeight.SemiBold)
-            Text(stringResource(R.string.faq_flash))
+            Text(stringResource(R.string.faq_anti_flicker))
+            Text(stringResource(R.string.faq_landscape_only))
+            Text(stringResource(R.string.faq_app_orientation))
             Text(stringResource(R.string.faq_channels))
         }
     }

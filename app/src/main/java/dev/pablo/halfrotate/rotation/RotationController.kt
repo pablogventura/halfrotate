@@ -18,20 +18,34 @@ class RotationController(private val context: Context) {
 
     fun canWriteSettings(): Boolean = Settings.System.canWrite(context)
 
-    fun isAutoRotateEnabled(): Boolean =
+    fun isAutoRotateEnabled(): Boolean = getAccelerometerRotation() == 1
+
+    fun getAccelerometerRotation(): Int =
         Settings.System.getInt(
             context.contentResolver,
             Settings.System.ACCELEROMETER_ROTATION,
             0,
-        ) == 1
+        )
 
-    fun enableAutoRotate() {
+    fun setAccelerometerRotation(enabled: Boolean) {
         if (!canWriteSettings()) return
         Settings.System.putInt(
             context.contentResolver,
             Settings.System.ACCELEROMETER_ROTATION,
-            1,
+            if (enabled) 1 else 0,
         )
+    }
+
+    fun lockSystemAutoRotate() {
+        setAccelerometerRotation(false)
+    }
+
+    fun restoreSystemAutoRotate(savedValue: Int) {
+        setAccelerometerRotation(savedValue == 1)
+    }
+
+    fun unlockSystemAutoRotate(restore: Int) {
+        restoreSystemAutoRotate(restore)
     }
 
     fun getUserRotation(): Int =
@@ -43,8 +57,8 @@ class RotationController(private val context: Context) {
 
     fun setUserRotation(rotation: Int) {
         if (!canWriteSettings()) return
-        require(rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_90) {
-            "HalfRotate only sets portrait or landscape"
+        require(rotation in Surface.ROTATION_0..Surface.ROTATION_270) {
+            "Invalid rotation $rotation"
         }
         Settings.System.putInt(
             context.contentResolver,
@@ -56,14 +70,5 @@ class RotationController(private val context: Context) {
     fun getDisplayRotation(): Int {
         val display = context.display ?: return getUserRotation()
         return display.rotation
-    }
-
-    fun applyCorrectionIfNeeded(): Boolean {
-        if (!canWriteSettings() || !isAutoRotateEnabled()) return false
-
-        val current = getDisplayRotation()
-        val corrected = RotationLogic.correctIfNeeded(current) ?: return false
-        setUserRotation(corrected)
-        return true
     }
 }

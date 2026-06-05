@@ -1,0 +1,3 @@
+Cuatro presets de rotación (vertical+horizontal, solo vertical, solo horizontal, todo menos boca abajo)
+Toggle forzar auto-rotación
+Motor anti-parpadeo: transiciones directas entre orientaciones permitidas

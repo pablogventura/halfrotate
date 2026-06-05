@@ -37,7 +37,8 @@
   1. User grants Modify system settings
   2. User enables filter
   3. Notification appears
-  4. Device rotated to 270° and corrected to 90°
+  4. Device rotated through orientations with preset **Portrait + landscape** — no flash at blocked angles
+  5. Optional: switch to **Landscape only** preset while filter is active
 
 ### App content
 

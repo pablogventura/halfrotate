@@ -1,1 +1,1 @@
-Limit auto-rotate to portrait and landscape only (no 180° or 270°).
+Limit auto-rotate to chosen orientations — no flicker, no root.

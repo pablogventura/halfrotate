@@ -15,7 +15,7 @@ import android.content.Context
 import android.content.Intent
 import androidx.core.content.ContextCompat
 import dev.pablo.halfrotate.HalfRotateApp
-import dev.pablo.halfrotate.data.FilterPreferences
+import dev.pablo.halfrotate.rotation.RotationController
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
@@ -41,12 +41,13 @@ object FilterServiceManager {
         val app = context.applicationContext as HalfRotateApp
         runBlocking {
             val prefs = app.filterPreferences
-            if (!prefs.autoRotateInitialized.first()) {
-                val controller = dev.pablo.halfrotate.rotation.RotationController(context)
-                if (controller.canWriteSettings()) {
-                    controller.enableAutoRotate()
-                    prefs.setAutoRotateInitialized(true)
-                }
+            val controller = RotationController(context)
+            if (prefs.savedAccelerometerRotation.first() == null && controller.canWriteSettings()) {
+                val current = controller.getAccelerometerRotation()
+                prefs.saveAccelerometerState(
+                    wasEnabled = current == 1,
+                    rotationValue = current,
+                )
             }
             prefs.setFilterEnabled(true)
         }
@@ -59,6 +60,13 @@ object FilterServiceManager {
             app.filterPreferences.setFilterEnabled(false)
         }
         stop(context)
+    }
+
+    fun notifyConfigChanged(context: Context) {
+        if (!isRunning(context)) return
+        val intent = Intent(context, RotationGuardService::class.java)
+            .setAction(RotationGuardService.ACTION_RELOAD_CONFIG)
+        ContextCompat.startForegroundService(context, intent)
     }
 
     suspend fun isFilterEnabled(context: Context): Boolean {

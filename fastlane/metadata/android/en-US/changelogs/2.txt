@@ -1,0 +1,3 @@
+Four rotation presets (portrait+landscape, portrait only, landscape only, all except upside down)
+Force auto-rotation toggle
+Anti-flicker engine: direct transitions between allowed orientations

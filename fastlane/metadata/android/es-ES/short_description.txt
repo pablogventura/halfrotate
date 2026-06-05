@@ -1,1 +1,1 @@
-Auto-rotación solo vertical y horizontal (sin 180° ni 270°).
+Limitá la auto-rotación a orientaciones elegidas — sin parpadeo, sin root.

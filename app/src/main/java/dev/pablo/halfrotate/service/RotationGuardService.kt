@@ -20,8 +20,9 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import dev.pablo.halfrotate.HalfRotateApp
 import dev.pablo.halfrotate.R
+import dev.pablo.halfrotate.data.FilterPreferences
+import dev.pablo.halfrotate.rotation.OrientationSensorRouter
 import dev.pablo.halfrotate.rotation.RotationController
-import dev.pablo.halfrotate.rotation.RotationMonitor
 import dev.pablo.halfrotate.ui.MainActivity
 import dev.pablo.halfrotate.util.NotificationHelper
 import kotlinx.coroutines.CoroutineScope
@@ -30,16 +31,20 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 class RotationGuardService : Service() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private lateinit var controller: RotationController
-    private var monitor: RotationMonitor? = null
+    private lateinit var prefs: FilterPreferences
+    private var router: OrientationSensorRouter? = null
+    private var engineRunning = false
 
     override fun onCreate() {
         super.onCreate()
         controller = RotationController(this)
+        prefs = (application as HalfRotateApp).filterPreferences
         NotificationHelper.createChannel(this)
     }
 
@@ -51,16 +56,24 @@ class RotationGuardService : Service() {
                 }
                 return START_NOT_STICKY
             }
+            ACTION_RELOAD_CONFIG -> {
+                scope.launch {
+                    if (engineRunning) {
+                        reloadEngine()
+                    }
+                }
+                return START_STICKY
+            }
         }
 
         scope.launch {
-            val enabled = (application as HalfRotateApp).filterPreferences.filterEnabled.first()
+            val enabled = prefs.filterEnabled.first()
             if (!enabled || !controller.canWriteSettings()) {
                 stopSelf()
                 return@launch
             }
             startForegroundInternal()
-            startMonitoring()
+            startEngine()
         }
 
         return START_STICKY
@@ -108,17 +121,65 @@ class RotationGuardService : Service() {
             .build()
     }
 
-    private fun startMonitoring() {
-        monitor?.stop()
-        monitor = RotationMonitor(this) {
-            controller.applyCorrectionIfNeeded()
-        }.also { it.start() }
-        controller.applyCorrectionIfNeeded()
+    private suspend fun startEngine() {
+        ensureAccelerometerSaved()
+        controller.lockSystemAutoRotate()
+
+        val preset = prefs.orientationPreset.first()
+        val sensorActive = isSensorActive()
+        val currentRotation = controller.getDisplayRotation()
+
+        router?.stop()
+        router = OrientationSensorRouter(this) { rotation ->
+            controller.setUserRotation(rotation)
+        }.also { r ->
+            r.start(preset, sensorActive, currentRotation)
+            r.snapIfNeeded(preset)
+        }
+        engineRunning = true
+    }
+
+    private suspend fun reloadEngine() {
+        val preset = prefs.orientationPreset.first()
+        val sensorActive = isSensorActive()
+        router?.updateConfig(preset, sensorActive)
+    }
+
+    private suspend fun ensureAccelerometerSaved() {
+        if (prefs.savedAccelerometerRotation.first() == null) {
+            val current = controller.getAccelerometerRotation()
+            prefs.saveAccelerometerState(
+                wasEnabled = current == 1,
+                rotationValue = current,
+            )
+        }
+    }
+
+    private suspend fun isSensorActive(): Boolean {
+        val force = prefs.forceSystemAutoRotate.first()
+        val atEnable = prefs.systemAutoRotateAtEnable.first()
+        return force || atEnable
+    }
+
+    private fun stopEngine() {
+        router?.stop()
+        router = null
+        engineRunning = false
+    }
+
+    private fun restoreAccelerometerRotation() {
+        runBlocking {
+            val saved = prefs.savedAccelerometerRotation.first()
+            if (saved != null && controller.canWriteSettings()) {
+                controller.restoreSystemAutoRotate(saved)
+            }
+            prefs.clearAccelerometerState()
+        }
     }
 
     override fun onDestroy() {
-        monitor?.stop()
-        monitor = null
+        stopEngine()
+        restoreAccelerometerRotation()
         scope.cancel()
         super.onDestroy()
     }
@@ -127,5 +188,6 @@ class RotationGuardService : Service() {
 
     companion object {
         const val ACTION_DISABLE = "dev.pablo.halfrotate.action.DISABLE_FILTER"
+        const val ACTION_RELOAD_CONFIG = "dev.pablo.halfrotate.action.RELOAD_CONFIG"
     }
 }

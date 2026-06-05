@@ -1,9 +1,13 @@
-HalfRotate mantiene la auto-rotación activa pero bloquea boca abajo (180°) e horizontal invertido (270°). Solo permite vertical (0°) y horizontal (90°).
+HalfRotate filtra la auto-rotación del sistema Android a las orientaciones que elijas: vertical + horizontal (predeterminado), solo vertical, solo horizontal, o todo menos boca abajo.
+
+Mientras el filtro está activo, la auto-rotación del sistema queda bloqueada y HalfRotate rota directamente entre orientaciones permitidas — sin pasar por ángulos bloqueados.
 
 <b>Características</b>
+• Cuatro presets de rotación
+• Forzar auto-rotación opcional cuando la del sistema está apagada
+• Motor proactivo anti-parpadeo
 • Sin root
-• Respeta la auto-rotación del sistema si la apagás
-• Tile en Ajustes rápidos
+• Tile de Ajustes rápidos
 • Se restaura tras reiniciar
 • Sin anuncios ni rastreo
 • Código abierto (GPL-3.0-or-later)
@@ -12,4 +16,4 @@ HalfRotate mantiene la auto-rotación activa pero bloquea boca abajo (180°) e h
 • Modificar ajustes del sistema — solo rotación
 • Servicio en primer plano — mientras el filtro está activo, con notificación
 
-<b>Nota:</b> Puede haber un parpadeo breve al corregir 270° a 90°. Es una limitación del sistema sin root.
+<b>Nota:</b> Algunas apps fuerzan su propia orientación y pueden ignorar la rotación del sistema.

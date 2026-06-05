@@ -1,13 +1,14 @@
 # HalfRotate
 
-Limit Android auto-rotation to **portrait (0°)** and **landscape (90°)**. Blocks **180°** and **270°** without root.
+Limit Android auto-rotation to **chosen orientations** without root — portrait, landscape, or custom presets with an anti-flicker engine.
 
 Free, no ads, no tracking. Licensed under **GPL-3.0-or-later**.
 
 ## Features
 
-- Keeps system auto-rotate enabled but filters disallowed orientations
-- Respects system auto-rotate when the user turns it off manually
+- **Four rotation presets:** portrait + landscape (default), portrait only, landscape only, all except upside down
+- **Force auto-rotation:** keep rotating between allowed orientations even when system auto-rotate is off
+- **Anti-flicker engine:** locks system auto-rotate while filtering and transitions directly between allowed orientations (no flash through blocked angles)
 - Foreground service only while the filter is active
 - Quick Settings tile
 - Restores after reboot (with battery/autostart configured on MIUI)
@@ -59,13 +60,13 @@ Output: `store-assets/` and `fastlane/metadata/android/*/images/`. Replace scree
 ./scripts/install-debug.sh
 ```
 
-Grant **Modify system settings** in the app, then enable the filter.
+Grant **Modify system settings** in the app, choose a rotation preset, then enable the filter.
 
 ## Permissions
 
 | Permission | Why |
 |------------|-----|
-| `WRITE_SETTINGS` | Read and correct `user_rotation` |
+| `WRITE_SETTINGS` | Read and set `user_rotation` / `accelerometer_rotation` |
 | `FOREGROUND_SERVICE` / `SPECIAL_USE` | Keep filter active in background |
 | `POST_NOTIFICATIONS` | Show active filter notification (Android 13+) |
 | `RECEIVE_BOOT_COMPLETED` | Restore filter after reboot |
@@ -94,7 +95,7 @@ See [COPYING](COPYING) for the full license text.
 
 ## F-Droid submission
 
-1. Tag a release: `git tag v1.0.0 && git push origin v1.0.0`
+1. Tag a release: `git tag v1.1.0 && git push origin v1.1.0`
 2. Open a merge request to [fdroiddata](https://gitlab.com/fdroid/fdroiddata) with `metadata/dev.pablo.halfrotate.yml`
 3. Or file a [Request for Packaging](https://gitlab.com/fdroid/rfp/-/issues/new)
 
@@ -102,5 +103,5 @@ See [docs/FDROID.md](docs/FDROID.md) for details.
 
 ## Limitations
 
-- Brief screen flash possible when correcting 270° → 90° (system limitation without root)
 - Some apps that force their own orientation may override system rotation
+- Manual QA on target devices (e.g. Xiaomi/MIUI) is recommended after each release

@@ -2,7 +2,7 @@
 
 ## Submit
 
-1. Ensure tag `v1.0.0` exists on GitHub with matching `versionCode` / `versionName` in `app/build.gradle.kts`.
+1. Ensure tag `v1.1.0` exists on GitHub with matching `versionCode` / `versionName` in `app/build.gradle.kts`.
 2. Copy or symlink [`metadata/fdroid/dev.pablo.halfrotate.yml`](../metadata/fdroid/dev.pablo.halfrotate.yml) into the [fdroiddata](https://gitlab.com/fdroid/fdroiddata) `metadata/` directory.
 3. Open a merge request, or file an [RFP issue](https://gitlab.com/fdroid/rfp/-/issues/new).
 
