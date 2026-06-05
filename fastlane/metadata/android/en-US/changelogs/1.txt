@@ -1,0 +1,1 @@
+Limit auto-rotate to portrait and landscape only (no 180° or 270°).

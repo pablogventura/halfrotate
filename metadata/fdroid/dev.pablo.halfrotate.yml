@@ -1,0 +1,44 @@
+AntiFeatures:
+
+Categories:
+  - System
+
+License: GPL-3.0-or-later
+
+AuthorName: Pablo
+AuthorEmail: pablo@users.noreply.github.com
+AuthorWebSite: https://github.com/pablogventura
+
+WebSite: https://github.com/pablogventura/halfrotate
+SourceCode: https://github.com/pablogventura/halfrotate
+IssueTracker: https://github.com/pablogventura/halfrotate/issues
+Changelog: https://github.com/pablogventura/halfrotate/blob/main/CHANGELOG.md
+Translation: https://github.com/pablogventura/halfrotate/tree/main/app/src/main/res
+
+Name: HalfRotate
+Summary: Limit auto-rotate to portrait and landscape only
+Description: |-
+  HalfRotate keeps Android auto-rotation enabled but blocks upside-down (180°)
+  and reverse landscape (270°) orientations. Only portrait (0°) and landscape
+  (90°) are allowed.
+
+  No root required. No ads. No tracking. GPL-3.0-or-later.
+
+  Requires the "Modify system settings" permission to adjust rotation. A foreground
+  service runs only while the filter is active, with a visible notification.
+
+  If system auto-rotate is turned off manually, HalfRotate respects that and
+  pauses corrections until auto-rotate is enabled again.
+
+Builds:
+  - versionName: '1.0.0'
+    versionCode: 1
+    commit: v1.0.0
+    subdir: app
+    gradle:
+      - assembleRelease
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags
+CurrentVersion: '1.0.0'
+CurrentVersionCode: 1

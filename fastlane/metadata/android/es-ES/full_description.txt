@@ -1,0 +1,15 @@
+HalfRotate mantiene la auto-rotación activa pero bloquea boca abajo (180°) e horizontal invertido (270°). Solo permite vertical (0°) y horizontal (90°).
+
+<b>Características</b>
+• Sin root
+• Respeta la auto-rotación del sistema si la apagás
+• Tile en Ajustes rápidos
+• Se restaura tras reiniciar
+• Sin anuncios ni rastreo
+• Código abierto (GPL-3.0-or-later)
+
+<b>Permisos</b>
+• Modificar ajustes del sistema — solo rotación
+• Servicio en primer plano — mientras el filtro está activo, con notificación
+
+<b>Nota:</b> Puede haber un parpadeo breve al corregir 270° a 90°. Es una limitación del sistema sin root.

@@ -1,0 +1,1 @@
+Auto-rotación solo vertical y horizontal (sin 180° ni 270°).

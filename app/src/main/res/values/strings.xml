@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">HalfRotate</string>
+    <string name="app_subtitle">Portrait and landscape auto-rotate only</string>
+
+    <string name="permission_write_settings_title">Modify system settings</string>
+    <string name="permission_write_settings_desc">Required to correct screen rotation. HalfRotate only changes rotation settings — nothing else.</string>
+    <string name="permission_write_settings_grant">Grant permission</string>
+    <string name="permission_write_settings_granted">Granted</string>
+    <string name="permission_write_settings_denied">Not granted</string>
+
+    <string name="notification_permission_title">Notifications</string>
+    <string name="notification_permission_desc">Required on Android 13+ to show the active filter notification.</string>
+    <string name="notification_permission_grant">Allow notifications</string>
+
+    <string name="status_filter">Filter</string>
+    <string name="status_filter_on">Active</string>
+    <string name="status_filter_off">Inactive</string>
+    <string name="status_auto_rotate">System auto-rotate</string>
+    <string name="status_auto_rotate_on">On</string>
+    <string name="status_auto_rotate_off">Off</string>
+    <string name="status_rotation">Current rotation</string>
+    <string name="rotation_0">Portrait (0°)</string>
+    <string name="rotation_90">Landscape (90°)</string>
+    <string name="rotation_180">Upside down (180°)</string>
+    <string name="rotation_270">Reverse landscape (270°)</string>
+    <string name="rotation_unknown">Unknown</string>
+
+    <string name="paused_banner">Filter active but paused — turn on system auto-rotate for corrections to apply.</string>
+
+    <string name="action_enable_filter">Enable filter</string>
+    <string name="action_disable_filter">Disable filter</string>
+
+    <string name="miui_section_title">Xiaomi / MIUI / HyperOS</string>
+    <string name="miui_section_desc">To keep the filter running after reboot, disable battery restrictions and allow autostart for HalfRotate.</string>
+    <string name="miui_battery">Disable battery optimization</string>
+    <string name="miui_autostart">Open autostart settings</string>
+
+    <string name="faq_title">FAQ</string>
+    <string name="faq_flash">When rotating toward 270°, the screen may flash briefly before correcting to 90°. This is a system limitation without root.</string>
+    <string name="faq_channels">Play Store and F-Droid builds use different signing keys. Switching stores requires reinstalling the app.</string>
+
+    <string name="about_title">About</string>
+    <string name="about_license">Licensed under GPL-3.0-or-later.</string>
+    <string name="about_source">Source code</string>
+    <string name="about_privacy">Privacy policy</string>
+    <string name="about_fdroid">Also available on F-Droid (after listing approval).</string>
+
+    <string name="notification_channel_name">Rotation filter</string>
+    <string name="notification_channel_desc">Shown while HalfRotate is actively filtering rotation.</string>
+    <string name="notification_title">HalfRotate active</string>
+    <string name="notification_text">Portrait and landscape only</string>
+    <string name="notification_action_disable">Disable</string>
+
+    <string name="tile_label">HalfRotate</string>
+    <string name="tile_subtitle_on">Filter on</string>
+    <string name="tile_subtitle_off">Filter off</string>
+
+    <string name="source_url">https://github.com/pablogventura/halfrotate</string>
+    <string name="privacy_url">https://pablogventura.github.io/halfrotate/</string>
+</resources>
