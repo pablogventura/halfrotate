@@ -18,66 +18,39 @@ import org.junit.Test
 
 class RotationLogicTest {
 
+    private val defaultAllowed = AllowedRotations.Default.toSet()
+    private val portraitOnly = AllowedRotations(portrait = true, landscape = false).toSet()
+    private val reverseLandscapeOnly = AllowedRotations(
+        portrait = false,
+        landscape = false,
+        reverseLandscape = true,
+    ).toSet()
+
     @Test
-    fun portraitAndLandscape_allowedSet() {
-        val allowed = RotationLogic.allowedRotations(OrientationPreset.PortraitAndLandscape)
-        assertEquals(setOf(0, 1), allowed)
+    fun defaultAllowed_portraitAndLandscape90Only() {
+        assertEquals(setOf(0, 1), defaultAllowed)
     }
 
     @Test
-    fun portraitOnly_allowedSet() {
-        assertEquals(setOf(0), RotationLogic.allowedRotations(OrientationPreset.PortraitOnly))
+    fun correction_270to90_whenOnly90Allowed() {
+        assertEquals(1, RotationLogic.correctionForDisallowed(3, defaultAllowed, null))
     }
 
     @Test
-    fun landscapeOnly_allowedSet() {
-        assertEquals(setOf(1), RotationLogic.allowedRotations(OrientationPreset.LandscapeOnly))
+    fun correction_90to270_whenOnly270Allowed() {
+        assertEquals(3, RotationLogic.correctionForDisallowed(1, reverseLandscapeOnly, null))
     }
 
     @Test
-    fun allExceptUpsideDown_allowedSet() {
-        assertEquals(setOf(0, 1, 3), RotationLogic.allowedRotations(OrientationPreset.AllExceptUpsideDown))
+    fun correction_180toPortrait() {
+        assertEquals(0, RotationLogic.correctionForDisallowed(2, defaultAllowed, null))
     }
 
     @Test
-    fun isAllowed_portraitAndLandscape() {
-        assertTrue(RotationLogic.isAllowed(0, OrientationPreset.PortraitAndLandscape))
-        assertTrue(RotationLogic.isAllowed(1, OrientationPreset.PortraitAndLandscape))
-        assertFalse(RotationLogic.isAllowed(2, OrientationPreset.PortraitAndLandscape))
-        assertFalse(RotationLogic.isAllowed(3, OrientationPreset.PortraitAndLandscape))
-    }
-
-    @Test
-    fun nearestAllowed_180to0_portraitAndLandscape() {
-        assertEquals(0, RotationLogic.nearestAllowed(2, OrientationPreset.PortraitAndLandscape, null))
-    }
-
-    @Test
-    fun nearestAllowed_270to90_portraitAndLandscape() {
-        assertEquals(1, RotationLogic.nearestAllowed(3, OrientationPreset.PortraitAndLandscape, null))
-    }
-
-    @Test
-    fun nearestAllowed_tieBreakUsesLastAllowed() {
-        // 180° is equidistant from 0 and 270 in AllExceptUpsideDown
-        assertEquals(
-            3,
-            RotationLogic.nearestAllowed(2, OrientationPreset.AllExceptUpsideDown, lastAllowed = 3),
-        )
-        assertEquals(
-            1,
-            RotationLogic.nearestAllowed(2, OrientationPreset.AllExceptUpsideDown, lastAllowed = 0),
-        )
-    }
-
-    @Test
-    fun nearestAllowed_tieBreakUsesLowerIndexWhenNoHistory() {
-        assertEquals(1, RotationLogic.nearestAllowed(2, OrientationPreset.AllExceptUpsideDown, null))
-    }
-
-    @Test
-    fun nearestAllowed_portraitOnlySnapsToPortrait() {
-        assertEquals(0, RotationLogic.nearestAllowed(1, OrientationPreset.PortraitOnly, null))
+    fun correction_bothHorizontalsAllowed_noCrossCorrection() {
+        val both = AllowedRotations(landscape = true, reverseLandscape = true).toSet()
+        assertEquals(1, RotationLogic.correctionForDisallowed(1, both, null))
+        assertEquals(3, RotationLogic.correctionForDisallowed(3, both, null))
     }
 
     @Test
@@ -90,71 +63,28 @@ class RotationLogicTest {
     }
 
     @Test
-    fun sensorDegreesToBucket_classifiesQuadrants() {
-        assertEquals(0, RotationLogic.sensorDegreesToBucket(0))
-        assertEquals(0, RotationLogic.sensorDegreesToBucket(359))
-        assertEquals(1, RotationLogic.sensorDegreesToBucket(90))
-        assertEquals(2, RotationLogic.sensorDegreesToBucket(180))
-        assertEquals(3, RotationLogic.sensorDegreesToBucket(270))
-    }
-
-    @Test
-    fun sensorDegreesToBucket_hysteresisKeepsPortraitNearBoundary() {
-        assertEquals(0, RotationLogic.sensorDegreesToBucket(25, currentBucket = 0))
-        assertEquals(0, RotationLogic.sensorDegreesToBucket(40, currentBucket = 0))
-    }
-
-    @Test
-    fun sensorDegreesToBucket_hysteresisSwitchesAfterThreshold() {
-        assertEquals(1, RotationLogic.sensorDegreesToBucket(62, currentBucket = 0))
-    }
-
-    @Test
-    fun sensorDegreesToBucket_hysteresisKeepsLandscapeNearBoundary() {
-        assertEquals(1, RotationLogic.sensorDegreesToBucket(58, currentBucket = 1))
-    }
-
-    @Test
-    fun bucketToUserRotation_isIdentity() {
-        assertEquals(2, RotationLogic.bucketToUserRotation(2))
-    }
-
-    @Test
-    fun shouldApplyTransition_requiresStability() {
-        assertFalse(
-            RotationLogic.shouldApplyTransition(
-                currentRotation = 0,
-                pendingRotation = 1,
-                pendingSinceMs = 1000L,
-                nowMs = 1200L,
-            ),
-        )
-        assertTrue(
-            RotationLogic.shouldApplyTransition(
-                currentRotation = 0,
-                pendingRotation = 1,
-                pendingSinceMs = 1000L,
-                nowMs = 1300L,
-            ),
-        )
-    }
-
-    @Test
-    fun shouldApplyTransition_sameRotationNeverApplies() {
-        assertFalse(
-            RotationLogic.shouldApplyTransition(
+    fun targetRotationForSensor_maps270to90ByDefault() {
+        assertEquals(
+            1,
+            RotationLogic.targetRotationForSensor(
+                270,
                 currentRotation = 1,
-                pendingRotation = 1,
-                pendingSinceMs = 0L,
-                nowMs = 10_000L,
+                allowed = defaultAllowed,
+                lastAllowed = 1,
             ),
         )
     }
 
     @Test
-    fun circularDistance() {
-        assertEquals(1, RotationLogic.circularDistance(0, 1))
-        assertEquals(1, RotationLogic.circularDistance(0, 3))
-        assertEquals(2, RotationLogic.circularDistance(0, 2))
+    fun targetRotationForSensor_maps90to270WhenOnly270Allowed() {
+        assertEquals(
+            3,
+            RotationLogic.targetRotationForSensor(
+                90,
+                currentRotation = 3,
+                allowed = reverseLandscapeOnly,
+                lastAllowed = 3,
+            ),
+        )
     }
 }

@@ -10,52 +10,43 @@
     <string name="permission_write_settings_denied">Not granted</string>
 
     <string name="notification_permission_title">Notifications</string>
-    <string name="notification_permission_desc">Required on Android 13+ to show the active filter notification.</string>
+    <string name="notification_permission_desc">Required on Android 13+ while HalfRotate is running.</string>
     <string name="notification_permission_grant">Allow notifications</string>
 
     <string name="config_section_title">Configuration</string>
-    <string name="config_preset_label">Rotation mode</string>
-    <string name="config_allowed_summary">Allowed: %1$s</string>
+    <string name="config_rotations_label">Allowed rotations</string>
+    <string name="config_rotations_desc">Each angle is independent. The two horizontal modes (90° and 270°) are different — enable only the one you want.</string>
     <string name="config_force_auto_rotate">Force auto-rotation</string>
     <string name="config_force_auto_rotate_desc">Keep rotating between allowed orientations even if system auto-rotate is off.</string>
 
-    <string name="preset_portrait_landscape">Portrait + landscape</string>
-    <string name="preset_portrait_only">Portrait only</string>
-    <string name="preset_landscape_only">Landscape only</string>
-    <string name="preset_no_upside_down">All except upside down</string>
-
-    <string name="allowed_summary_portrait_landscape">portrait, landscape</string>
-    <string name="allowed_summary_portrait_only">portrait</string>
-    <string name="allowed_summary_landscape_only">landscape</string>
-    <string name="allowed_summary_no_upside_down">portrait, landscape, reverse landscape</string>
-
-    <string name="status_filter">Filter</string>
-    <string name="status_filter_on">Active</string>
-    <string name="status_filter_off">Inactive</string>
+    <string name="status_app">HalfRotate</string>
+    <string name="status_app_on">Running</string>
+    <string name="status_app_off">Stopped</string>
     <string name="status_auto_rotate">Auto-rotate (effective)</string>
     <string name="status_auto_rotate_on">On</string>
     <string name="status_auto_rotate_off">Off</string>
     <string name="status_rotation">Current rotation</string>
     <string name="rotation_0">Portrait (0°)</string>
-    <string name="rotation_90">Landscape (90°)</string>
-    <string name="rotation_180">Upside down (180°)</string>
-    <string name="rotation_270">Reverse landscape (270°)</string>
+    <string name="rotation_90">Horizontal 90°</string>
+    <string name="rotation_180">Upside down 180°</string>
+    <string name="rotation_270">Horizontal 270°</string>
     <string name="rotation_unknown">Unknown</string>
 
-    <string name="paused_banner">Filter active but paused — enable \"Force auto-rotation\" or turn on system auto-rotate before activating the filter.</string>
+    <string name="paused_banner">HalfRotate is running but rotation is paused — enable \"Force auto-rotation\" or turn on system auto-rotate.</string>
+    <string name="service_start_failed_banner">HalfRotate could not start. Check permissions and disable battery restrictions for this app.</string>
 
-    <string name="action_enable_filter">Enable filter</string>
-    <string name="action_disable_filter">Disable filter</string>
+    <string name="action_enable_app">Start HalfRotate</string>
+    <string name="action_disable_app">Stop HalfRotate</string>
 
     <string name="miui_section_title">Xiaomi / MIUI / HyperOS</string>
-    <string name="miui_section_desc">To keep the filter running after reboot, disable battery restrictions and allow autostart for HalfRotate.</string>
+    <string name="miui_section_desc">To keep HalfRotate running after reboot, disable battery restrictions and allow autostart.</string>
     <string name="miui_battery">Disable battery optimization</string>
     <string name="miui_autostart">Open autostart settings</string>
 
     <string name="faq_title">FAQ</string>
-    <string name="faq_anti_flicker">HalfRotate locks system auto-rotate while the filter is active and rotates directly between allowed orientations — no flash through blocked angles.</string>
-    <string name="faq_landscape_only">Use \"Landscape only\" to stay in horizontal mode. The screen won\'t rotate to portrait while the filter is on.</string>
-    <string name="faq_app_orientation">Some apps force their own orientation and may ignore system rotation. The filter applies to the Android system, which covers most apps.</string>
+    <string name="faq_anti_flicker">HalfRotate locks system auto-rotate while running and rotates directly between allowed orientations — no flash through blocked angles.</string>
+    <string name="faq_disabled_rotations">Enable only the rotations you want. 90° and 270° horizontal are separate. A disabled angle snaps to the nearest allowed one (90° ↔ 270°, 180° → 0°).</string>
+    <string name="faq_app_orientation">Some apps force their own orientation and may ignore system rotation. HalfRotate applies to the Android system, which covers most apps.</string>
     <string name="faq_channels">Play Store and F-Droid builds use different signing keys. Switching stores requires reinstalling the app.</string>
 
     <string name="about_title">About</string>
@@ -64,15 +55,15 @@
     <string name="about_privacy">Privacy policy</string>
     <string name="about_fdroid">Also available on F-Droid (after listing approval).</string>
 
-    <string name="notification_channel_name">Rotation filter</string>
-    <string name="notification_channel_desc">Shown while HalfRotate is actively filtering rotation.</string>
-    <string name="notification_title">HalfRotate active</string>
-    <string name="notification_text">Rotation filter active</string>
-    <string name="notification_action_disable">Disable</string>
+    <string name="notification_channel_name">HalfRotate</string>
+    <string name="notification_channel_desc">Shown while HalfRotate is running.</string>
+    <string name="notification_title">HalfRotate running</string>
+    <string name="notification_text">Controlling screen rotation</string>
+    <string name="notification_action_disable">Stop</string>
 
     <string name="tile_label">HalfRotate</string>
-    <string name="tile_subtitle_on">Filter on</string>
-    <string name="tile_subtitle_off">Filter off</string>
+    <string name="tile_subtitle_on">Running</string>
+    <string name="tile_subtitle_off">Stopped</string>
 
     <string name="source_url">https://github.com/pablogventura/halfrotate</string>
     <string name="privacy_url">https://pablogventura.github.io/halfrotate/</string>

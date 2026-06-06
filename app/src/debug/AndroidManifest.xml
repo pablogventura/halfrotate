@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <receiver
+            android:name=".testing.TestFilterReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="dev.pablo.halfrotate.test.ENABLE_FILTER" />
+                <action android:name="dev.pablo.halfrotate.test.DISABLE_FILTER" />
+                <action android:name="dev.pablo.halfrotate.test.SET_PRESET" />
+                <action android:name="dev.pablo.halfrotate.test.SET_FORCE_AUTO_ROTATE" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

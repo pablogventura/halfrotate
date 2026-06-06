@@ -12,115 +12,49 @@ package dev.pablo.halfrotate.rotation
 
 import android.content.Context
 import android.view.OrientationEventListener
-import android.view.Surface
 
 class OrientationSensorRouter(
     context: Context,
     private val onApplyRotation: (Int) -> Unit,
 ) {
     private val appContext = context.applicationContext
-
-    private var preset: OrientationPreset = OrientationPreset.PortraitAndLandscape
-    private var sensorActive: Boolean = false
-    private var currentLockedRotation: Int = Surface.ROTATION_0
-    private var lastAllowedRotation: Int = Surface.ROTATION_0
-    private var pendingRotation: Int? = null
-    private var pendingSinceMs: Long = 0L
+    private val engine = SensorTransitionEngine()
 
     private val listener = object : OrientationEventListener(appContext) {
         override fun onOrientationChanged(orientation: Int) {
-            if (!sensorActive) return
-            if (orientation == RotationLogic.ORIENTATION_UNKNOWN) return
-            val bucket = RotationLogic.sensorDegreesToBucket(
-                orientation,
-                currentLockedRotation,
-            )
-            if (!RotationLogic.isAllowed(bucket, preset)) return
-            if (bucket == currentLockedRotation) {
-                pendingRotation = null
-                return
-            }
-            val now = System.currentTimeMillis()
-            if (pendingRotation != bucket) {
-                pendingRotation = bucket
-                pendingSinceMs = now
-                return
-            }
-            if (RotationLogic.shouldApplyTransition(
-                    currentLockedRotation,
-                    pendingRotation,
-                    pendingSinceMs,
-                    now,
-                )
-            ) {
-                applyRotation(bucket)
+            val result = engine.onSensorDegrees(orientation, System.currentTimeMillis())
+            if (result is TransitionResult.Apply) {
+                onApplyRotation(result.rotation)
             }
         }
     }
 
     fun start(
-        preset: OrientationPreset,
+        allowed: Set<Int>,
         sensorActive: Boolean,
         initialRotation: Int,
     ) {
-        this.preset = preset
-        this.sensorActive = sensorActive
-        currentLockedRotation = initialRotation
-        if (RotationLogic.isAllowed(initialRotation, preset)) {
-            lastAllowedRotation = initialRotation
-        }
-        pendingRotation = null
+        engine.start(initialRotation, allowed, sensorActive)
         if (listener.canDetectOrientation()) {
             listener.enable()
         }
+        applyResult(engine.snapIfNeeded())
     }
 
     fun stop() {
         listener.disable()
-        pendingRotation = null
-        sensorActive = false
     }
 
     fun updateConfig(
-        preset: OrientationPreset,
+        allowed: Set<Int>,
         sensorActive: Boolean,
     ) {
-        onPresetChanged(preset, sensorActive)
+        applyResult(engine.onAllowedChanged(allowed, sensorActive))
     }
 
-    fun onPresetChanged(
-        preset: OrientationPreset,
-        sensorActive: Boolean = this.sensorActive,
-    ) {
-        this.preset = preset
-        this.sensorActive = sensorActive
-        if (!RotationLogic.isAllowed(currentLockedRotation, preset)) {
-            val target = RotationLogic.nearestAllowed(
-                currentLockedRotation,
-                preset,
-                lastAllowedRotation,
-            )
-            applyRotation(target)
+    private fun applyResult(result: TransitionResult) {
+        if (result is TransitionResult.Apply) {
+            onApplyRotation(result.rotation)
         }
-    }
-
-    fun snapIfNeeded(preset: OrientationPreset) {
-        this.preset = preset
-        if (!RotationLogic.isAllowed(currentLockedRotation, preset)) {
-            val target = RotationLogic.nearestAllowed(
-                currentLockedRotation,
-                preset,
-                lastAllowedRotation,
-            )
-            applyRotation(target)
-        }
-    }
-
-    private fun applyRotation(rotation: Int) {
-        val userRotation = RotationLogic.bucketToUserRotation(rotation)
-        currentLockedRotation = userRotation
-        lastAllowedRotation = userRotation
-        pendingRotation = null
-        onApplyRotation(userRotation)
     }
 }

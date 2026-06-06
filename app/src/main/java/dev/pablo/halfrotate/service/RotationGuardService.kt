@@ -23,6 +23,7 @@ import dev.pablo.halfrotate.R
 import dev.pablo.halfrotate.data.FilterPreferences
 import dev.pablo.halfrotate.rotation.OrientationSensorRouter
 import dev.pablo.halfrotate.rotation.RotationController
+import dev.pablo.halfrotate.rotation.RotationLogic
 import dev.pablo.halfrotate.ui.MainActivity
 import dev.pablo.halfrotate.util.NotificationHelper
 import kotlinx.coroutines.CoroutineScope
@@ -69,10 +70,12 @@ class RotationGuardService : Service() {
         scope.launch {
             val enabled = prefs.filterEnabled.first()
             if (!enabled || !controller.canWriteSettings()) {
+                ServiceState.markStopped()
                 stopSelf()
                 return@launch
             }
             startForegroundInternal()
+            ServiceState.markRunning()
             startEngine()
         }
 
@@ -125,24 +128,26 @@ class RotationGuardService : Service() {
         ensureAccelerometerSaved()
         controller.lockSystemAutoRotate()
 
-        val preset = prefs.orientationPreset.first()
+        val allowed = prefs.allowedRotations.first().toSet()
         val sensorActive = isSensorActive()
-        val currentRotation = controller.getDisplayRotation()
+        val current = controller.getUserRotation()
+        val initial = RotationLogic.correctionForDisallowed(current, allowed, null)
+        controller.setUserRotation(initial)
 
         router?.stop()
         router = OrientationSensorRouter(this) { rotation ->
             controller.setUserRotation(rotation)
         }.also { r ->
-            r.start(preset, sensorActive, currentRotation)
-            r.snapIfNeeded(preset)
+            r.start(allowed, sensorActive, initial)
+            r.updateConfig(allowed, sensorActive)
         }
         engineRunning = true
     }
 
     private suspend fun reloadEngine() {
-        val preset = prefs.orientationPreset.first()
+        val allowed = prefs.allowedRotations.first().toSet()
         val sensorActive = isSensorActive()
-        router?.updateConfig(preset, sensorActive)
+        router?.updateConfig(allowed, sensorActive)
     }
 
     private suspend fun ensureAccelerometerSaved() {
@@ -180,6 +185,7 @@ class RotationGuardService : Service() {
     override fun onDestroy() {
         stopEngine()
         restoreAccelerometerRotation()
+        ServiceState.markStopped()
         scope.cancel()
         super.onDestroy()
     }

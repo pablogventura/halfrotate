@@ -10,16 +10,18 @@
 
 package dev.pablo.halfrotate.service
 
-import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
 import androidx.core.content.ContextCompat
 import dev.pablo.halfrotate.HalfRotateApp
 import dev.pablo.halfrotate.rotation.RotationController
+import dev.pablo.halfrotate.util.PermissionsHelper
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 
 object FilterServiceManager {
+    private const val START_RETRY_DELAY_MS = 400L
+
     fun start(context: Context) {
         val intent = Intent(context, RotationGuardService::class.java)
         ContextCompat.startForegroundService(context, intent)
@@ -29,17 +31,11 @@ object FilterServiceManager {
         context.stopService(Intent(context, RotationGuardService::class.java))
     }
 
-    fun isRunning(context: Context): Boolean {
-        val manager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-        @Suppress("DEPRECATION")
-        return manager.getRunningServices(Int.MAX_VALUE).any {
-            it.service.className == RotationGuardService::class.java.name
-        }
-    }
+    fun isRunning(context: Context): Boolean = ServiceState.isRunning
 
     fun enableFilter(context: Context) {
         val app = context.applicationContext as HalfRotateApp
-        runBlocking {
+        kotlinx.coroutines.runBlocking {
             val prefs = app.filterPreferences
             val controller = RotationController(context)
             if (prefs.savedAccelerometerRotation.first() == null && controller.canWriteSettings()) {
@@ -56,7 +52,7 @@ object FilterServiceManager {
 
     fun disableFilter(context: Context) {
         val app = context.applicationContext as HalfRotateApp
-        runBlocking {
+        kotlinx.coroutines.runBlocking {
             app.filterPreferences.setFilterEnabled(false)
         }
         stop(context)
@@ -72,5 +68,42 @@ object FilterServiceManager {
     suspend fun isFilterEnabled(context: Context): Boolean {
         val app = context.applicationContext as HalfRotateApp
         return app.filterPreferences.filterEnabled.first()
+    }
+
+    /** Align persisted preference with the real foreground service state. */
+    suspend fun syncRunningState(context: Context): SyncResult {
+        val app = context.applicationContext as HalfRotateApp
+        val wantsEnabled = app.filterPreferences.filterEnabled.first()
+        val running = isRunning(context)
+
+        if (wantsEnabled && !running) {
+            if (!PermissionsHelper.canWriteSettings(context)) {
+                app.filterPreferences.setFilterEnabled(false)
+                return SyncResult.PreferenceCleared
+            }
+            start(context)
+            delay(START_RETRY_DELAY_MS)
+            if (!isRunning(context)) {
+                app.filterPreferences.setFilterEnabled(false)
+                return SyncResult.StartFailed
+            }
+            return SyncResult.Restarted
+        }
+
+        if (!wantsEnabled && running) {
+            stop(context)
+            delay(START_RETRY_DELAY_MS)
+            return SyncResult.Stopped
+        }
+
+        return SyncResult.AlreadyInSync
+    }
+
+    enum class SyncResult {
+        AlreadyInSync,
+        Restarted,
+        Stopped,
+        StartFailed,
+        PreferenceCleared,
     }
 }

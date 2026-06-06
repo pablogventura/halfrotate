@@ -68,7 +68,11 @@ class RotationController(private val context: Context) {
     }
 
     fun getDisplayRotation(): Int {
-        val display = context.display ?: return getUserRotation()
-        return display.rotation
+        return try {
+            val display = context.display ?: return getUserRotation()
+            display.rotation
+        } catch (_: UnsupportedOperationException) {
+            getUserRotation()
+        }
     }
 }

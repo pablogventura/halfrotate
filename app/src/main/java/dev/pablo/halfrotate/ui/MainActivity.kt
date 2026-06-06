@@ -22,7 +22,6 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -39,7 +38,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -59,7 +57,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.pablo.halfrotate.R
-import dev.pablo.halfrotate.rotation.OrientationPreset
+import dev.pablo.halfrotate.rotation.AllowedRotations
+import dev.pablo.halfrotate.rotation.RotationLogic
 import dev.pablo.halfrotate.ui.theme.HalfRotateTheme
 import dev.pablo.halfrotate.util.PermissionsHelper
 
@@ -84,7 +83,6 @@ class MainActivity : ComponentActivity() {
                     MainScreen(
                         uiState = uiState,
                         rotationLabelRes = viewModel.rotationLabelRes(uiState.currentRotation),
-                        allowedSummaryRes = viewModel.allowedSummaryRes(uiState.orientationPreset),
                         onGrantWriteSettings = {
                             startActivity(PermissionsHelper.writeSettingsIntent(this))
                         },
@@ -95,11 +93,9 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
                         },
-                        onPresetSelected = viewModel::setOrientationPreset,
+                        onRotationToggled = viewModel::setRotationToggle,
                         onForceAutoRotateChanged = viewModel::setForceSystemAutoRotate,
-                        onToggleFilter = { enable ->
-                            viewModel.toggleFilter(enable)
-                        },
+                        onToggleApp = viewModel::toggleApp,
                         onBatteryOptimization = {
                             startActivity(PermissionsHelper.batteryOptimizationIntent(this))
                         },
@@ -129,17 +125,16 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MainScreen(
     uiState: MainUiState,
     rotationLabelRes: Int,
-    allowedSummaryRes: Int,
     onGrantWriteSettings: () -> Unit,
     onGrantNotifications: () -> Unit,
-    onPresetSelected: (OrientationPreset) -> Unit,
+    onRotationToggled: (toggle: Int, enabled: Boolean) -> Unit,
     onForceAutoRotateChanged: (Boolean) -> Unit,
-    onToggleFilter: (Boolean) -> Unit,
+    onToggleApp: (Boolean) -> Unit,
     onBatteryOptimization: () -> Unit,
     onAutostart: () -> Unit,
     onAbout: () -> Unit,
@@ -173,6 +168,10 @@ private fun MainScreen(
                 style = MaterialTheme.typography.bodyLarge,
             )
 
+            if (uiState.serviceStartFailed) {
+                Banner(text = stringResource(R.string.service_start_failed_banner))
+            }
+
             if (uiState.pausedBecauseAutoRotateOff) {
                 Banner(text = stringResource(R.string.paused_banner))
             }
@@ -201,8 +200,7 @@ private fun MainScreen(
 
             ConfigurationSection(
                 uiState = uiState,
-                allowedSummaryRes = allowedSummaryRes,
-                onPresetSelected = onPresetSelected,
+                onRotationToggled = onRotationToggled,
                 onForceAutoRotateChanged = onForceAutoRotateChanged,
             )
 
@@ -210,17 +208,17 @@ private fun MainScreen(
 
             Button(
                 onClick = {
-                    onToggleFilter(!uiState.filterEnabled)
+                    onToggleApp(!uiState.appActive)
                 },
-                enabled = uiState.canEnableFilter || uiState.filterEnabled,
+                enabled = uiState.canEnableApp || uiState.appActive,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(
                     stringResource(
-                        if (uiState.filterEnabled) {
-                            R.string.action_disable_filter
+                        if (uiState.appActive) {
+                            R.string.action_disable_app
                         } else {
-                            R.string.action_enable_filter
+                            R.string.action_enable_app
                         },
                     ),
                 )
@@ -250,14 +248,14 @@ private fun MainScreen(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ConfigurationSection(
     uiState: MainUiState,
-    allowedSummaryRes: Int,
-    onPresetSelected: (OrientationPreset) -> Unit,
+    onRotationToggled: (toggle: Int, enabled: Boolean) -> Unit,
     onForceAutoRotateChanged: (Boolean) -> Unit,
 ) {
+    val allowed = uiState.allowedRotations
+    val enabledCount = allowed.enabledCount()
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
             Modifier
@@ -271,27 +269,51 @@ private fun ConfigurationSection(
             )
 
             Text(
-                stringResource(R.string.config_preset_label),
+                stringResource(R.string.config_rotations_label),
                 style = MaterialTheme.typography.labelLarge,
             )
 
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                OrientationPreset.entries.forEach { preset ->
-                    FilterChip(
-                        selected = uiState.orientationPreset == preset,
-                        onClick = { onPresetSelected(preset) },
-                        label = { Text(stringResource(presetLabelRes(preset))) },
-                    )
-                }
-            }
-
             Text(
-                stringResource(R.string.config_allowed_summary, stringResource(allowedSummaryRes)),
-                style = MaterialTheme.typography.bodyMedium,
+                stringResource(R.string.config_rotations_desc),
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            RotationToggleRow(
+                label = stringResource(R.string.rotation_0),
+                checked = allowed.portrait,
+                enabledCount = enabledCount,
+                writeSettingsGranted = uiState.writeSettingsGranted,
+                onCheckedChange = {
+                    onRotationToggled(AllowedRotations.TOGGLE_PORTRAIT, it)
+                },
+            )
+            RotationToggleRow(
+                label = stringResource(R.string.rotation_90),
+                checked = allowed.landscape,
+                enabledCount = enabledCount,
+                writeSettingsGranted = uiState.writeSettingsGranted,
+                onCheckedChange = {
+                    onRotationToggled(AllowedRotations.TOGGLE_LANDSCAPE, it)
+                },
+            )
+            RotationToggleRow(
+                label = stringResource(R.string.rotation_270),
+                checked = allowed.reverseLandscape,
+                enabledCount = enabledCount,
+                writeSettingsGranted = uiState.writeSettingsGranted,
+                onCheckedChange = {
+                    onRotationToggled(AllowedRotations.TOGGLE_REVERSE_LANDSCAPE, it)
+                },
+            )
+            RotationToggleRow(
+                label = stringResource(R.string.rotation_180),
+                checked = allowed.reversePortrait,
+                enabledCount = enabledCount,
+                writeSettingsGranted = uiState.writeSettingsGranted,
+                onCheckedChange = {
+                    onRotationToggled(AllowedRotations.TOGGLE_REVERSE_PORTRAIT, it)
+                },
             )
 
             Row(
@@ -320,11 +342,26 @@ private fun ConfigurationSection(
     }
 }
 
-private fun presetLabelRes(preset: OrientationPreset): Int = when (preset) {
-    OrientationPreset.PortraitAndLandscape -> R.string.preset_portrait_landscape
-    OrientationPreset.PortraitOnly -> R.string.preset_portrait_only
-    OrientationPreset.LandscapeOnly -> R.string.preset_landscape_only
-    OrientationPreset.AllExceptUpsideDown -> R.string.preset_no_upside_down
+@Composable
+private fun RotationToggleRow(
+    label: String,
+    checked: Boolean,
+    enabledCount: Int,
+    writeSettingsGranted: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, Modifier.weight(1f))
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            enabled = writeSettingsGranted && (!checked || enabledCount > 1),
+        )
+    }
 }
 
 @Composable
@@ -429,9 +466,9 @@ private fun StatusCard(uiState: MainUiState, rotationLabelRes: Int) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             StatusRow(
-                stringResource(R.string.status_filter),
+                stringResource(R.string.status_app),
                 stringResource(
-                    if (uiState.filterEnabled) R.string.status_filter_on else R.string.status_filter_off,
+                    if (uiState.appActive) R.string.status_app_on else R.string.status_app_off,
                 ),
             )
             StatusRow(
@@ -466,7 +503,7 @@ private fun FaqSection() {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.faq_title), fontWeight = FontWeight.SemiBold)
             Text(stringResource(R.string.faq_anti_flicker))
-            Text(stringResource(R.string.faq_landscape_only))
+            Text(stringResource(R.string.faq_disabled_rotations))
             Text(stringResource(R.string.faq_app_orientation))
             Text(stringResource(R.string.faq_channels))
         }

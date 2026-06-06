@@ -8,17 +8,19 @@
  * (at your option) any later version.
  */
 
-package dev.pablo.halfrotate.rotation
+package dev.pablo.halfrotate.service
 
-enum class OrientationPreset {
-    PortraitAndLandscape,
-    PortraitOnly,
-    LandscapeOnly,
-    AllExceptUpsideDown,
-    ;
+/** In-process service flag — [ActivityManager.getRunningServices] is unreliable on Android 8+. */
+object ServiceState {
+    @Volatile
+    var isRunning: Boolean = false
+        private set
 
-    companion object {
-        fun fromStored(value: String?): OrientationPreset =
-            entries.find { it.name == value } ?: PortraitAndLandscape
+    fun markRunning() {
+        isRunning = true
+    }
+
+    fun markStopped() {
+        isRunning = false
     }
 }

@@ -22,7 +22,6 @@ import dev.pablo.halfrotate.util.PermissionsHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import dev.pablo.halfrotate.HalfRotateApp
 
@@ -32,7 +31,10 @@ class RotationTileService : TileService() {
 
     override fun onStartListening() {
         super.onStartListening()
-        updateTile()
+        scope.launch {
+            FilterServiceManager.syncRunningState(this@RotationTileService)
+            updateTile()
+        }
     }
 
     override fun onClick() {
@@ -45,9 +47,8 @@ class RotationTileService : TileService() {
         }
 
         scope.launch {
-            val app = application as HalfRotateApp
-            val enabled = app.filterPreferences.filterEnabled.first()
-            if (enabled) {
+            val running = FilterServiceManager.isRunning(this@RotationTileService)
+            if (running) {
                 FilterServiceManager.disableFilter(this@RotationTileService)
             } else {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -59,6 +60,7 @@ class RotationTileService : TileService() {
                     }
                 }
                 FilterServiceManager.enableFilter(this@RotationTileService)
+                FilterServiceManager.syncRunningState(this@RotationTileService)
             }
             updateTile()
         }
@@ -67,10 +69,10 @@ class RotationTileService : TileService() {
     private fun updateTile() {
         scope.launch {
             val qsTile = qsTile ?: return@launch
-            val enabled = (application as HalfRotateApp).filterPreferences.filterEnabled.first()
-            qsTile.state = if (enabled) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
+            val running = FilterServiceManager.isRunning(this@RotationTileService)
+            qsTile.state = if (running) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
             qsTile.subtitle = getString(
-                if (enabled) R.string.tile_subtitle_on else R.string.tile_subtitle_off,
+                if (running) R.string.tile_subtitle_on else R.string.tile_subtitle_off,
             )
             qsTile.updateTile()
         }

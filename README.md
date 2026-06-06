@@ -105,3 +105,15 @@ See [docs/FDROID.md](docs/FDROID.md) for details.
 
 - Some apps that force their own orientation may override system rotation
 - Manual QA on target devices (e.g. Xiaomi/MIUI) is recommended after each release
+
+## Testing
+
+```bash
+./gradlew test                           # unit tests (JVM, no device)
+./scripts/setup-android-emulator.sh      # once: install API 35 emulator (~1-2 GB)
+./scripts/emulator-start.sh              # GUI emulator (headless: ./scripts/emulator-start.sh headless)
+./scripts/emulator-smoke-test.sh         # emulator + instrumented tests (debug APK)
+./scripts/run-all-tests.sh               # unit + emulator smoke
+```
+
+Grant `WRITE_SETTINGS` is handled automatically in instrumented tests via `appops`. Debug builds include a test-only broadcast receiver for reliable filter enable/disable.

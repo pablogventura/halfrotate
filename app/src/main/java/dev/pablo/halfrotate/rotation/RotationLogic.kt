@@ -25,19 +25,7 @@ object RotationLogic {
     const val ORIENTATION_DEGREES_180 = 180
     const val ORIENTATION_DEGREES_270 = 270
 
-    fun allowedRotations(preset: OrientationPreset): Set<Int> = when (preset) {
-        OrientationPreset.PortraitAndLandscape -> setOf(ROTATION_PORTRAIT, ROTATION_LANDSCAPE)
-        OrientationPreset.PortraitOnly -> setOf(ROTATION_PORTRAIT)
-        OrientationPreset.LandscapeOnly -> setOf(ROTATION_LANDSCAPE)
-        OrientationPreset.AllExceptUpsideDown -> setOf(
-            ROTATION_PORTRAIT,
-            ROTATION_LANDSCAPE,
-            ROTATION_REVERSE_LANDSCAPE,
-        )
-    }
-
-    fun isAllowed(rotation: Int, preset: OrientationPreset): Boolean =
-        rotation in allowedRotations(preset)
+    fun isAllowed(rotation: Int, allowed: Set<Int>): Boolean = rotation in allowed
 
     fun circularDistance(a: Int, b: Int): Int {
         val diff = abs(a - b)
@@ -46,33 +34,41 @@ object RotationLogic {
 
     fun nearestAllowed(
         rotation: Int,
-        preset: OrientationPreset,
-        lastAllowed: Int?,
-    ): Int {
-        val allowed = allowedRotations(preset)
-        if (rotation in allowed) return rotation
-
-        if (preset == OrientationPreset.PortraitAndLandscape) {
-            return when (rotation) {
-                ROTATION_REVERSE_PORTRAIT -> ROTATION_PORTRAIT
-                ROTATION_REVERSE_LANDSCAPE -> ROTATION_LANDSCAPE
-                else -> fallbackNearest(rotation, allowed, lastAllowed)
-            }
-        }
-
-        return fallbackNearest(rotation, allowed, lastAllowed)
-    }
-
-    private fun fallbackNearest(
-        rotation: Int,
         allowed: Set<Int>,
         lastAllowed: Int?,
+    ): Int = correctionForDisallowed(rotation, allowed, lastAllowed)
+
+    /**
+     * Maps a disallowed rotation to an allowed one.
+     * Reverse portrait (180°) prefers upright portrait; reverse landscape (270°) prefers
+     * normal landscape — avoids upside-down content when those angles are disabled.
+     */
+    fun correctionForDisallowed(
+        rotation: Int,
+        allowed: Set<Int>,
+        lastAllowed: Int? = null,
     ): Int {
-        val minDistance = allowed.minOf { circularDistance(rotation, it) }
-        val candidates = allowed.filter { circularDistance(rotation, it) == minDistance }
-        if (candidates.size == 1) return candidates.first()
-        if (lastAllowed != null && lastAllowed in candidates) return lastAllowed
-        return candidates.min()
+        if (rotation in allowed) return rotation
+        if (allowed.isEmpty()) return ROTATION_PORTRAIT
+
+        val uprightPair = when (rotation) {
+            ROTATION_REVERSE_PORTRAIT ->
+                if (ROTATION_PORTRAIT in allowed) ROTATION_PORTRAIT else null
+            ROTATION_REVERSE_LANDSCAPE ->
+                if (ROTATION_LANDSCAPE in allowed) ROTATION_LANDSCAPE else null
+            ROTATION_LANDSCAPE ->
+                if (ROTATION_REVERSE_LANDSCAPE in allowed) ROTATION_REVERSE_LANDSCAPE else null
+            ROTATION_PORTRAIT ->
+                if (ROTATION_REVERSE_PORTRAIT in allowed) ROTATION_REVERSE_PORTRAIT else null
+            else -> null
+        }
+        if (uprightPair != null) return uprightPair
+
+        return allowed.minWith(
+            compareBy<Int>({ circularDistance(rotation, it) })
+                .thenBy { if (lastAllowed != null) circularDistance(it, lastAllowed) else it }
+                .thenBy { it },
+        )
     }
 
     fun orientationEventToRotation(orientation: Int): Int? {
@@ -94,6 +90,16 @@ object RotationLogic {
 
     fun bucketToUserRotation(bucket: Int): Int = bucket
 
+    fun targetRotationForSensor(
+        degrees: Int,
+        currentRotation: Int,
+        allowed: Set<Int>,
+        lastAllowed: Int?,
+    ): Int {
+        val bucket = sensorDegreesToBucket(degrees, currentRotation)
+        return correctionForDisallowed(bucket, allowed, lastAllowed)
+    }
+
     private fun normalizeDegrees(degrees: Int): Int = ((degrees % 360) + 360) % 360
 
     private fun baseBucket(degrees: Int): Int = when {
@@ -114,9 +120,6 @@ object RotationLogic {
         return min(diff, 360 - diff)
     }
 
-    /**
-     * Returns true when [pendingRotation] has been stable long enough to apply.
-     */
     fun shouldApplyTransition(
         currentRotation: Int,
         pendingRotation: Int?,
