@@ -9,6 +9,9 @@ AuthorName: Pablo
 AuthorEmail: pablo@users.noreply.github.com
 AuthorWebSite: https://github.com/pablogventura
 
+RepoType: git
+Repo: https://github.com/pablogventura/halfrotate
+
 WebSite: https://github.com/pablogventura/halfrotate
 SourceCode: https://github.com/pablogventura/halfrotate
 IssueTracker: https://github.com/pablogventura/halfrotate/issues
@@ -38,13 +41,13 @@ Builds:
     commit: v1.1.0
     subdir: app
     gradle:
-      - assembleRelease
+      - yes
   - versionName: '1.0.0'
     versionCode: 1
     commit: v1.0.0
     subdir: app
     gradle:
-      - assembleRelease
+      - yes
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
