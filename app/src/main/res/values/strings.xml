@@ -15,7 +15,7 @@
 
     <string name="config_section_title">Configuration</string>
     <string name="config_rotations_label">Allowed rotations</string>
-    <string name="config_rotations_desc">Each angle is independent. The two horizontal modes (90° and 270°) are different — enable only the one you want.</string>
+    <string name="config_rotations_desc">Each angle is independent. A disabled horizontal never swaps to the other horizontal — it falls back to portrait when allowed, or the nearest allowed angle.</string>
     <string name="config_force_auto_rotate">Force auto-rotation</string>
     <string name="config_force_auto_rotate_desc">Keep rotating between allowed orientations even if system auto-rotate is off.</string>
 
@@ -45,7 +45,7 @@
 
     <string name="faq_title">FAQ</string>
     <string name="faq_anti_flicker">HalfRotate locks system auto-rotate while running and rotates directly between allowed orientations — no flash through blocked angles.</string>
-    <string name="faq_disabled_rotations">Enable only the rotations you want. 90° and 270° horizontal are separate. A disabled angle snaps to the nearest allowed one (90° ↔ 270°, 180° → 0°).</string>
+    <string name="faq_disabled_rotations">Enable only the rotations you want. 90° and 270° never substitute for each other. A disabled horizontal goes to portrait when vertical is allowed; otherwise the nearest allowed angle.</string>
     <string name="faq_app_orientation">Some apps force their own orientation and may ignore system rotation. HalfRotate applies to the Android system, which covers most apps.</string>
     <string name="faq_channels">Play Store and F-Droid builds use different signing keys. Switching stores requires reinstalling the app.</string>
 

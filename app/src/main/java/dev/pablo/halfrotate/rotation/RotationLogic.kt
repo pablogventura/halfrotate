@@ -40,8 +40,11 @@ object RotationLogic {
 
     /**
      * Maps a disallowed rotation to an allowed one.
-     * Reverse portrait (180°) prefers upright portrait; reverse landscape (270°) prefers
-     * normal landscape — avoids upside-down content when those angles are disabled.
+     *
+     * Policy:
+     * - 90° and 270° never substitute for each other when one is disabled.
+     * - A disabled horizontal snaps to portrait (0°) when portrait is allowed.
+     * - Otherwise pick the nearest allowed bucket on the ring; tie-break with [lastAllowed].
      */
     fun correctionForDisallowed(
         rotation: Int,
@@ -51,18 +54,9 @@ object RotationLogic {
         if (rotation in allowed) return rotation
         if (allowed.isEmpty()) return ROTATION_PORTRAIT
 
-        val uprightPair = when (rotation) {
-            ROTATION_REVERSE_PORTRAIT ->
-                if (ROTATION_PORTRAIT in allowed) ROTATION_PORTRAIT else null
-            ROTATION_REVERSE_LANDSCAPE ->
-                if (ROTATION_LANDSCAPE in allowed) ROTATION_LANDSCAPE else null
-            ROTATION_LANDSCAPE ->
-                if (ROTATION_REVERSE_LANDSCAPE in allowed) ROTATION_REVERSE_LANDSCAPE else null
-            ROTATION_PORTRAIT ->
-                if (ROTATION_REVERSE_PORTRAIT in allowed) ROTATION_REVERSE_PORTRAIT else null
-            else -> null
+        if (rotation.isHorizontal() && ROTATION_PORTRAIT in allowed) {
+            return ROTATION_PORTRAIT
         }
-        if (uprightPair != null) return uprightPair
 
         return allowed.minWith(
             compareBy<Int>({ circularDistance(rotation, it) })
@@ -70,6 +64,9 @@ object RotationLogic {
                 .thenBy { it },
         )
     }
+
+    private fun Int.isHorizontal(): Boolean =
+        this == ROTATION_LANDSCAPE || this == ROTATION_REVERSE_LANDSCAPE
 
     fun orientationEventToRotation(orientation: Int): Int? {
         if (orientation == ORIENTATION_UNKNOWN || orientation !in 0..359) return null

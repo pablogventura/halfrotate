@@ -17,6 +17,11 @@ import org.junit.Test
 class SensorTransitionEngineTest {
 
     private val defaultAllowed = AllowedRotations.Default.toSet()
+    private val portraitAnd270 = AllowedRotations(
+        portrait = true,
+        landscape = false,
+        reverseLandscape = true,
+    ).toSet()
     private val reverseLandscapeOnly = AllowedRotations(
         portrait = false,
         landscape = false,
@@ -24,17 +29,31 @@ class SensorTransitionEngineTest {
     ).toSet()
 
     @Test
-    fun disallowed270_snapsTo90AfterStability() {
+    fun disallowed270_snapsToPortraitAfterStability() {
         val engine = SensorTransitionEngine()
         engine.start(
-            initialRotation = RotationLogic.ROTATION_PORTRAIT,
+            initialRotation = RotationLogic.ROTATION_LANDSCAPE,
             allowed = defaultAllowed,
             sensorActive = true,
         )
 
         assertTrue(engine.onSensorDegrees(270, nowMs = 0L) is TransitionResult.None)
         val result = engine.onSensorDegrees(270, nowMs = 400L)
-        assertEquals(TransitionResult.Apply(RotationLogic.ROTATION_LANDSCAPE), result)
+        assertEquals(TransitionResult.Apply(RotationLogic.ROTATION_PORTRAIT), result)
+    }
+
+    @Test
+    fun disallowed90_snapsToPortraitWhenPortraitAnd270Allowed() {
+        val engine = SensorTransitionEngine()
+        engine.start(
+            initialRotation = RotationLogic.ROTATION_REVERSE_LANDSCAPE,
+            allowed = portraitAnd270,
+            sensorActive = true,
+        )
+
+        engine.onSensorDegrees(90, nowMs = 0L)
+        val result = engine.onSensorDegrees(90, nowMs = 400L)
+        assertEquals(TransitionResult.Apply(RotationLogic.ROTATION_PORTRAIT), result)
     }
 
     @Test

@@ -11,46 +11,68 @@
 package dev.pablo.halfrotate.rotation
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.junit.runners.Parameterized
+
+@RunWith(Parameterized::class)
+class RotationLogicCorrectionTest(
+    private val allowed: Set<Int>,
+    private val forbidden: Int,
+    private val expected: Int,
+) {
+
+    @Test
+    fun correctionForDisallowed() {
+        assertEquals(
+            expected,
+            RotationLogic.correctionForDisallowed(forbidden, allowed, lastAllowed = null),
+        )
+    }
+
+    companion object {
+        private val portraitAnd90 = AllowedRotations.Default.toSet()
+        private val portraitAnd270 = AllowedRotations(
+            portrait = true,
+            landscape = false,
+            reverseLandscape = true,
+        ).toSet()
+        private val reverseLandscapeOnly = AllowedRotations(
+            portrait = false,
+            landscape = false,
+            reverseLandscape = true,
+        ).toSet()
+        private val landscape90Only = AllowedRotations(
+            portrait = false,
+            landscape = true,
+        ).toSet()
+        private val bothHorizontals = AllowedRotations(
+            landscape = true,
+            reverseLandscape = true,
+        ).toSet()
+
+        @JvmStatic
+        @Parameterized.Parameters(name = "allowed={0} forbidden={1} -> {2}")
+        fun data(): Collection<Array<Any>> = listOf(
+            arrayOf(portraitAnd90, 3, 0),
+            arrayOf(portraitAnd90, 2, 1),
+            arrayOf(portraitAnd270, 1, 0),
+            arrayOf(reverseLandscapeOnly, 1, 3),
+            arrayOf(landscape90Only, 3, 1),
+            arrayOf(bothHorizontals, 1, 1),
+            arrayOf(bothHorizontals, 3, 3),
+        )
+    }
+}
 
 class RotationLogicTest {
 
     private val defaultAllowed = AllowedRotations.Default.toSet()
-    private val portraitOnly = AllowedRotations(portrait = true, landscape = false).toSet()
-    private val reverseLandscapeOnly = AllowedRotations(
-        portrait = false,
-        landscape = false,
-        reverseLandscape = true,
-    ).toSet()
 
     @Test
     fun defaultAllowed_portraitAndLandscape90Only() {
         assertEquals(setOf(0, 1), defaultAllowed)
-    }
-
-    @Test
-    fun correction_270to90_whenOnly90Allowed() {
-        assertEquals(1, RotationLogic.correctionForDisallowed(3, defaultAllowed, null))
-    }
-
-    @Test
-    fun correction_90to270_whenOnly270Allowed() {
-        assertEquals(3, RotationLogic.correctionForDisallowed(1, reverseLandscapeOnly, null))
-    }
-
-    @Test
-    fun correction_180toPortrait() {
-        assertEquals(0, RotationLogic.correctionForDisallowed(2, defaultAllowed, null))
-    }
-
-    @Test
-    fun correction_bothHorizontalsAllowed_noCrossCorrection() {
-        val both = AllowedRotations(landscape = true, reverseLandscape = true).toSet()
-        assertEquals(1, RotationLogic.correctionForDisallowed(1, both, null))
-        assertEquals(3, RotationLogic.correctionForDisallowed(3, both, null))
     }
 
     @Test
@@ -63,9 +85,9 @@ class RotationLogicTest {
     }
 
     @Test
-    fun targetRotationForSensor_maps270to90ByDefault() {
+    fun targetRotationForSensor_maps270toPortraitByDefault() {
         assertEquals(
-            1,
+            0,
             RotationLogic.targetRotationForSensor(
                 270,
                 currentRotation = 1,
@@ -76,15 +98,27 @@ class RotationLogicTest {
     }
 
     @Test
-    fun targetRotationForSensor_maps90to270WhenOnly270Allowed() {
+    fun targetRotationForSensor_maps90toPortraitWhenOnly270AllowedWithPortrait() {
+        val allowed = AllowedRotations(
+            portrait = true,
+            landscape = false,
+            reverseLandscape = true,
+        ).toSet()
         assertEquals(
-            3,
+            0,
             RotationLogic.targetRotationForSensor(
                 90,
-                currentRotation = 3,
-                allowed = reverseLandscapeOnly,
-                lastAllowed = 3,
+                currentRotation = 0,
+                allowed = allowed,
+                lastAllowed = 0,
             ),
         )
+    }
+
+    @Test
+    fun circularDistance() {
+        assertEquals(1, RotationLogic.circularDistance(0, 1))
+        assertEquals(1, RotationLogic.circularDistance(0, 3))
+        assertEquals(2, RotationLogic.circularDistance(0, 2))
     }
 }
