@@ -32,7 +32,8 @@ class SensorTransitionEngine {
         this.allowed = allowed
         this.sensorActive = sensorActive
         currentRotation = initialRotation
-        if (RotationLogic.isAllowed(initialRotation, allowed)) {
+        val initialBucket = RotationLogic.displayRotationToSensorBucket(initialRotation)
+        if (RotationLogic.isAllowed(initialBucket, allowed)) {
             lastAllowedRotation = initialRotation
         }
         pendingRotation = null
@@ -42,18 +43,19 @@ class SensorTransitionEngine {
         if (!sensorActive) return TransitionResult.None
         if (degrees == RotationLogic.ORIENTATION_UNKNOWN) return TransitionResult.None
 
-        val target = RotationLogic.targetRotationForSensor(
+        val targetBucket = RotationLogic.targetRotationForSensor(
             degrees,
             currentRotation,
             allowed,
             lastAllowedRotation,
         )
-        if (target == currentRotation) {
+        val targetDisplay = RotationLogic.sensorBucketToDisplayRotation(targetBucket)
+        if (targetDisplay == currentRotation) {
             pendingRotation = null
             return TransitionResult.None
         }
-        if (pendingRotation != target) {
-            pendingRotation = target
+        if (pendingRotation != targetDisplay) {
+            pendingRotation = targetDisplay
             pendingSinceMs = nowMs
             return TransitionResult.None
         }
@@ -66,7 +68,7 @@ class SensorTransitionEngine {
         ) {
             return TransitionResult.None
         }
-        return applyRotation(target)
+        return applyRotation(targetBucket)
     }
 
     fun onAllowedChanged(
@@ -79,22 +81,23 @@ class SensorTransitionEngine {
     }
 
     fun snapIfNeeded(): TransitionResult {
-        if (RotationLogic.isAllowed(currentRotation, allowed)) {
+        val currentBucket = RotationLogic.displayRotationToSensorBucket(currentRotation)
+        if (RotationLogic.isAllowed(currentBucket, allowed)) {
             return TransitionResult.None
         }
-        val target = RotationLogic.correctionForDisallowed(
-            currentRotation,
+        val targetBucket = RotationLogic.correctionForDisallowed(
+            currentBucket,
             allowed,
             lastAllowedRotation,
         )
-        return applyRotation(target)
+        return applyRotation(targetBucket)
     }
 
-    private fun applyRotation(rotation: Int): TransitionResult.Apply {
-        val userRotation = RotationLogic.bucketToUserRotation(rotation)
-        currentRotation = userRotation
-        lastAllowedRotation = userRotation
+    private fun applyRotation(sensorBucket: Int): TransitionResult.Apply {
+        val displayRotation = RotationLogic.sensorBucketToDisplayRotation(sensorBucket)
+        currentRotation = displayRotation
+        lastAllowedRotation = displayRotation
         pendingRotation = null
-        return TransitionResult.Apply(userRotation)
+        return TransitionResult.Apply(displayRotation)
     }
 }

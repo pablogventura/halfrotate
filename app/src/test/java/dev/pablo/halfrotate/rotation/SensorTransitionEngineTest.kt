@@ -72,20 +72,20 @@ class SensorTransitionEngineTest {
 
         engine.onSensorDegrees(270, nowMs = 0L)
         val result = engine.onSensorDegrees(270, nowMs = 400L)
-        assertEquals(TransitionResult.Apply(RotationLogic.ROTATION_REVERSE_LANDSCAPE), result)
+        assertEquals(TransitionResult.Apply(RotationLogic.ROTATION_LANDSCAPE), result)
     }
 
     @Test
     fun allowedChange_snapsWhenDisallowed() {
         val engine = SensorTransitionEngine()
         engine.start(
-            initialRotation = RotationLogic.ROTATION_LANDSCAPE,
+            initialRotation = RotationLogic.ROTATION_REVERSE_LANDSCAPE,
             allowed = defaultAllowed,
             sensorActive = true,
         )
 
         val result = engine.onAllowedChanged(
-            allowed = AllowedRotations(HorizontalMode.REVERSE_LANDSCAPE_270).toSet(),
+            allowed = portraitAnd270,
             sensorActive = true,
         )
 

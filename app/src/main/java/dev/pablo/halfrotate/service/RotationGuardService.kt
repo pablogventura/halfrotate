@@ -132,15 +132,17 @@ class RotationGuardService : Service() {
         rotationLockGuard = SystemRotationLockGuard(this, controller).also { it.start() }
 
         val allowed = prefs.allowedRotations.first().toSet()
-        val current = controller.getUserRotation()
-        val initial = RotationLogic.correctionForDisallowed(current, allowed, null)
-        controller.setUserRotation(initial)
+        val currentDisplay = controller.getUserRotation()
+        val currentBucket = RotationLogic.displayRotationToSensorBucket(currentDisplay)
+        val initialBucket = RotationLogic.correctionForDisallowed(currentBucket, allowed, null)
+        val initialDisplay = RotationLogic.sensorBucketToDisplayRotation(initialBucket)
+        controller.setUserRotation(initialDisplay)
 
         router?.stop()
         router = OrientationSensorRouter(this) { rotation ->
             controller.setUserRotation(rotation)
         }.also { r ->
-            r.start(allowed, sensorActive = true, initial)
+            r.start(allowed, sensorActive = true, initialDisplay)
             r.updateConfig(allowed, sensorActive = true)
         }
         engineRunning = true

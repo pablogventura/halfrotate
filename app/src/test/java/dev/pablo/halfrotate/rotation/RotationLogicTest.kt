@@ -85,6 +85,13 @@ class RotationLogicTest {
     }
 
     @Test
+    fun sensorBucketToDisplayRotation_swapsHorizontals() {
+        assertEquals(3, RotationLogic.sensorBucketToDisplayRotation(RotationLogic.ROTATION_LANDSCAPE))
+        assertEquals(1, RotationLogic.sensorBucketToDisplayRotation(RotationLogic.ROTATION_REVERSE_LANDSCAPE))
+        assertEquals(0, RotationLogic.sensorBucketToDisplayRotation(RotationLogic.ROTATION_PORTRAIT))
+    }
+
+    @Test
     fun targetRotationForSensor_maps270toPortraitByDefault() {
         assertEquals(
             0,

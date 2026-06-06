@@ -63,8 +63,8 @@ class RotationIntegrationTest {
     }
 
     @Test
-    fun landscape90_snap270ToPortraitOnEnable() {
-        controller.setUserRotation(RotationLogic.ROTATION_REVERSE_LANDSCAPE)
+    fun landscape90_snapWrongHorizontalToPortraitOnEnable() {
+        controller.setUserRotation(RotationLogic.ROTATION_LANDSCAPE)
         TestFilterHarness.setHorizontalMode(HorizontalMode.LANDSCAPE_90)
         TestFilterHarness.enableFilter()
 

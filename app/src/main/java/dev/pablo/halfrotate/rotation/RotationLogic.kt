@@ -53,7 +53,17 @@ object RotationLogic {
         return baseBucket(normalized)
     }
 
-    fun bucketToUserRotation(bucket: Int): Int = bucket
+    fun bucketToUserRotation(sensorBucket: Int): Int = sensorBucketToDisplayRotation(sensorBucket)
+
+    /** Maps sensor tilt bucket to Settings user_rotation (device natural orientation may invert 90/270). */
+    fun sensorBucketToDisplayRotation(sensorBucket: Int): Int = when (sensorBucket) {
+        ROTATION_LANDSCAPE -> ROTATION_REVERSE_LANDSCAPE
+        ROTATION_REVERSE_LANDSCAPE -> ROTATION_LANDSCAPE
+        else -> sensorBucket
+    }
+
+    fun displayRotationToSensorBucket(displayRotation: Int): Int =
+        sensorBucketToDisplayRotation(displayRotation)
 
     fun targetRotationForSensor(
         degrees: Int,
@@ -61,7 +71,8 @@ object RotationLogic {
         allowed: Set<Int>,
         lastAllowed: Int?,
     ): Int {
-        val bucket = sensorDegreesToBucket(degrees, currentRotation)
+        val currentBucket = displayRotationToSensorBucket(currentRotation)
+        val bucket = sensorDegreesToBucket(degrees, currentBucket)
         return correctionForDisallowed(bucket, allowed, lastAllowed)
     }
 
