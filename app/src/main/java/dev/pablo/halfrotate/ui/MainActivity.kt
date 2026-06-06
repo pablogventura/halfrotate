@@ -11,6 +11,8 @@
 package dev.pablo.halfrotate.ui
 
 import android.Manifest
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -50,6 +52,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.pablo.halfrotate.BuildConfig
 import dev.pablo.halfrotate.R
 import dev.pablo.halfrotate.rotation.HorizontalMode
 import dev.pablo.halfrotate.ui.theme.HalfRotateTheme
@@ -90,6 +93,9 @@ class MainActivity : ComponentActivity() {
                     onAutostart = {
                         startActivity(PermissionsHelper.autostartIntent(this))
                     },
+                    onOpenUrl = { url ->
+                        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                    },
                 )
             }
         }
@@ -111,6 +117,7 @@ private fun MainScreen(
     onToggleApp: (Boolean) -> Unit,
     onBatteryOptimization: () -> Unit,
     onAutostart: () -> Unit,
+    onOpenUrl: (String) -> Unit,
 ) {
     Scaffold(
         topBar = {
@@ -182,6 +189,37 @@ private fun MainScreen(
                         Text(stringResource(R.string.miui_autostart))
                     }
                 }
+            }
+
+            AboutSection(onOpenUrl = onOpenUrl)
+        }
+    }
+}
+
+@Composable
+private fun AboutSection(onOpenUrl: (String) -> Unit) {
+    val sourceUrl = stringResource(R.string.about_source_url)
+    val privacyUrl = stringResource(R.string.about_privacy_url)
+
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                stringResource(R.string.about_section_title),
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(stringResource(R.string.about_version, BuildConfig.VERSION_NAME))
+            Text(stringResource(R.string.about_license))
+            OutlinedButton(
+                onClick = { onOpenUrl(sourceUrl) },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(stringResource(R.string.about_source_code))
+            }
+            OutlinedButton(
+                onClick = { onOpenUrl(privacyUrl) },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(stringResource(R.string.about_privacy_policy))
             }
         }
     }

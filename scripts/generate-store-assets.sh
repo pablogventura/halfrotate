@@ -28,27 +28,27 @@ convert -size 1024x500 "xc:$BG" \
   -fill "$ACCENT" -draw "roundrectangle 700,150 950,350 20,20" \
   "$OUT/feature-graphic-1024x500.png"
 
-# Placeholder phone screenshots (replace with real captures from device)
+# Placeholder phone screenshots (replace with ./scripts/capture-store-screenshots.sh)
 for lang in en es; do
-  label="HalfRotate"
-  subtitle="Filter active — portrait & landscape"
-  [[ "$lang" == "es" ]] && label="HalfRotate" && subtitle="Filtro activo — vertical y horizontal"
-  convert -size 1080x2400 "xc:#121212" \
-    -fill "$BG" -draw "rectangle 0,0 1080,280" \
-    -gravity north -fill "$FG" -pointsize 48 -annotate +0+100 "$label" \
-    -gravity center -fill "$ACCENT" -pointsize 36 -annotate +0+0 "$subtitle" \
-    -fill "#888888" -pointsize 24 -annotate +0+200 "(Replace with adb screencap)" \
-    "$OUT/screenshot-${lang}-1.png"
+  for num in 1 2; do
+    label="HalfRotate"
+    if [[ "$num" == "1" ]]; then
+      subtitle="Filter active — portrait & landscape"
+      [[ "$lang" == "es" ]] && subtitle="Filtro activo — vertical y horizontal"
+    else
+      subtitle="About — source code & privacy"
+      [[ "$lang" == "es" ]] && subtitle="Acerca de — código y privacidad"
+    fi
+    convert -size 1080x2400 "xc:#121212" \
+      -fill "$BG" -draw "rectangle 0,0 1080,280" \
+      -gravity north -fill "$FG" -pointsize 48 -annotate +0+100 "$label" \
+      -gravity center -fill "$ACCENT" -pointsize 36 -annotate +0+0 "$subtitle" \
+      -fill "#888888" -pointsize 24 -annotate +0+200 "(Replace with adb screencap)" \
+      "$OUT/screenshot-${lang}-${num}.png"
+  done
 done
 
 echo "Wrote assets to $OUT/"
 ls -la "$OUT"
 
-FASTLANE="$ROOT/fastlane/metadata/android"
-mkdir -p "$FASTLANE/en-US/images/phoneScreenshots" "$FASTLANE/es-ES/images/phoneScreenshots"
-cp "$OUT/icon-512.png" "$FASTLANE/en-US/images/icon.png"
-cp "$OUT/icon-512.png" "$FASTLANE/es-ES/images/icon.png"
-cp "$OUT/feature-graphic-1024x500.png" "$FASTLANE/en-US/images/featureGraphic.png"
-cp "$OUT/screenshot-en-1.png" "$FASTLANE/en-US/images/phoneScreenshots/1.png"
-cp "$OUT/screenshot-es-1.png" "$FASTLANE/es-ES/images/phoneScreenshots/1.png"
-echo "Copied to fastlane/metadata/android/"
+"$ROOT/scripts/sync-store-assets.sh"

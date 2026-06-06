@@ -32,4 +32,12 @@
     <string name="tile_label">HalfRotate</string>
     <string name="tile_subtitle_on">En ejecución</string>
     <string name="tile_subtitle_off">Detenida</string>
+
+    <string name="about_section_title">Acerca de</string>
+    <string name="about_version">Versión %1$s</string>
+    <string name="about_license">Software libre bajo GPL-3.0-or-later. Sin anuncios ni rastreo.</string>
+    <string name="about_source_code">Código fuente</string>
+    <string name="about_privacy_policy">Política de privacidad</string>
+    <string name="about_source_url">https://github.com/pablogventura/halfrotate</string>
+    <string name="about_privacy_url">https://pablogventura.github.io/halfrotate/</string>
 </resources>
