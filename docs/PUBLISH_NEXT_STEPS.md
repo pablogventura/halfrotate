@@ -30,6 +30,18 @@ Todo lo automatizable ya está hecho en el repo. Completá estos pasos en las co
 3. Copiar contenido de [`docs/FDROID_RFP.md`](FDROID_RFP.md)
 4. Mencionar metadata en `metadata/fdroid/dev.pablo.halfrotate.yml`
 
+## Probar release en el Xiaomi (MIUI)
+
+Si `installRelease` falla con `INSTALL_FAILED_USER_RESTRICTED`:
+
+1. Ajustes → Privacidad → **Instalar apps desconocidas** → permitir para la app de depuración USB / Android Studio.
+2. En MIUI: Ajustes → Ajustes adicionales → **Opciones de desarrollador** → activar **Instalar vía USB**.
+3. Desinstalar la build debug si estaba instalada, luego:
+
+   ```bash
+   adb install -r app/build/outputs/apk/release/app-release.apk
+   ```
+
 ## Recordatorios
 
 - Play y F-Droid usan **claves distintas** — los usuarios no pueden cambiar de canal sin reinstalar.
