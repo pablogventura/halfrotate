@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">HalfRotate</string>
-    <string name="app_subtitle">Limitá la auto-rotación a las orientaciones que elijas</string>
 
     <string name="permission_write_settings_title">Modificar ajustes del sistema</string>
     <string name="permission_write_settings_desc">Necesario para controlar la rotación de pantalla. HalfRotate solo cambia ajustes de rotación — nada más.</string>
@@ -13,47 +12,16 @@
     <string name="notification_permission_desc">Necesario en Android 13+ mientras HalfRotate está en ejecución.</string>
     <string name="notification_permission_grant">Permitir notificaciones</string>
 
-    <string name="config_section_title">Configuración</string>
-    <string name="config_rotations_label">Rotaciones permitidas</string>
-    <string name="config_rotations_desc">Cada ángulo es independiente. Un horizontal desactivado no salta al otro — vuelve a vertical si está permitido, o al ángulo permitido más cercano.</string>
-    <string name="config_force_auto_rotate">Forzar auto-rotación</string>
-    <string name="config_force_auto_rotate_desc">Seguir rotando entre orientaciones permitidas aunque la auto-rotación del sistema esté apagada.</string>
-
-    <string name="status_app">HalfRotate</string>
-    <string name="status_app_on">En ejecución</string>
-    <string name="status_app_off">Detenida</string>
-    <string name="status_auto_rotate">Auto-rotación (efectiva)</string>
-    <string name="status_auto_rotate_on">Activada</string>
-    <string name="status_auto_rotate_off">Desactivada</string>
-    <string name="status_rotation">Rotación actual</string>
-    <string name="rotation_0">Vertical (0°)</string>
+    <string name="config_horizontal_label">Horizontal al girar el móvil</string>
     <string name="rotation_90">Horizontal 90°</string>
-    <string name="rotation_180">Boca abajo 180°</string>
     <string name="rotation_270">Horizontal 270°</string>
-    <string name="rotation_unknown">Desconocida</string>
 
-    <string name="paused_banner">HalfRotate está en ejecución pero la rotación está en pausa — activá \"Forzar auto-rotación\" o encendé la auto-rotación del sistema.</string>
     <string name="service_start_failed_banner">HalfRotate no pudo iniciarse. Revisá permisos y desactivá restricciones de batería para esta app.</string>
-
-    <string name="action_enable_app">Iniciar HalfRotate</string>
-    <string name="action_disable_app">Detener HalfRotate</string>
 
     <string name="miui_section_title">Xiaomi / MIUI / HyperOS</string>
     <string name="miui_section_desc">Para mantener HalfRotate tras reiniciar, desactivá restricciones de batería y permití inicio automático.</string>
     <string name="miui_battery">Desactivar optimización de batería</string>
     <string name="miui_autostart">Abrir ajustes de inicio automático</string>
-
-    <string name="faq_title">Preguntas frecuentes</string>
-    <string name="faq_anti_flicker">HalfRotate bloquea la auto-rotación del sistema mientras está en ejecución y rota directamente entre orientaciones permitidas — sin pasar por ángulos bloqueados.</string>
-    <string name="faq_disabled_rotations">Activá solo las rotaciones que quieras. 90° y 270° nunca se sustituyen entre sí. Un horizontal desactivado va a vertical si está permitido; si no, al permitido más cercano.</string>
-    <string name="faq_app_orientation">Algunas apps fuerzan su propia orientación y pueden ignorar la rotación del sistema. HalfRotate aplica al sistema Android, que cubre la mayoría de apps.</string>
-    <string name="faq_channels">Las versiones de Play Store y F-Droid usan firmas distintas. Cambiar de canal requiere reinstalar la app.</string>
-
-    <string name="about_title">Acerca de</string>
-    <string name="about_license">Licencia GPL-3.0-or-later.</string>
-    <string name="about_source">Código fuente</string>
-    <string name="about_privacy">Política de privacidad</string>
-    <string name="about_fdroid">También disponible en F-Droid (cuando esté publicada).</string>
 
     <string name="notification_channel_name">HalfRotate</string>
     <string name="notification_channel_desc">Visible mientras HalfRotate está en ejecución.</string>
@@ -64,7 +32,4 @@
     <string name="tile_label">HalfRotate</string>
     <string name="tile_subtitle_on">En ejecución</string>
     <string name="tile_subtitle_off">Detenida</string>
-
-    <string name="source_url">https://github.com/pablogventura/halfrotate</string>
-    <string name="privacy_url">https://pablogventura.github.io/halfrotate/</string>
 </resources>

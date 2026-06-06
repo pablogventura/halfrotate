@@ -12,7 +12,7 @@ package dev.pablo.halfrotate
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import dev.pablo.halfrotate.rotation.AllowedRotations
+import dev.pablo.halfrotate.rotation.HorizontalMode
 import dev.pablo.halfrotate.rotation.RotationController
 import dev.pablo.halfrotate.rotation.RotationLogic
 import org.junit.After
@@ -63,11 +63,9 @@ class RotationIntegrationTest {
     }
 
     @Test
-    fun portraitOnlySnap_correctsLandscapeToPortrait() {
-        controller.setUserRotation(RotationLogic.ROTATION_LANDSCAPE)
-        TestFilterHarness.setAllowedRotations(
-            AllowedRotations(portrait = true, landscape = false, reverseLandscape = false),
-        )
+    fun landscape90_snap270ToPortraitOnEnable() {
+        controller.setUserRotation(RotationLogic.ROTATION_REVERSE_LANDSCAPE)
+        TestFilterHarness.setHorizontalMode(HorizontalMode.LANDSCAPE_90)
         TestFilterHarness.enableFilter()
 
         TestFilterHarness.waitUntil {
@@ -78,14 +76,11 @@ class RotationIntegrationTest {
     }
 
     @Test
-    fun sensorPausedWhenForceOff_serviceRunsWithoutChangingRotation() {
-        controller.setAccelerometerRotation(false)
-        TestFilterHarness.setForceAutoRotate(false)
+    fun miuiToggleRelockedWhenChanged() {
         TestFilterHarness.enableFilter()
+        controller.setAccelerometerRotation(true)
+        Thread.sleep(300L)
 
-        val rotationBefore = controller.getUserRotation()
-        Thread.sleep(500L)
-
-        assertEquals(rotationBefore, controller.getUserRotation())
+        assertEquals(0, controller.getAccelerometerRotation())
     }
 }

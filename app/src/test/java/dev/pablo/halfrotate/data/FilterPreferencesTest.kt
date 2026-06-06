@@ -11,27 +11,28 @@
 package dev.pablo.halfrotate.data
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
 import dev.pablo.halfrotate.rotation.AllowedRotations
+import dev.pablo.halfrotate.rotation.HorizontalMode
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import java.io.File
 
 class FilterPreferencesTest {
 
     @get:Rule
     val tempFolder = TemporaryFolder()
 
-    private fun createPrefs(): FilterPreferences {
-        val file = tempFolder.newFile("test_prefs.preferences_pb")
-        val dataStore = PreferenceDataStoreFactory.create(
-            produceFile = { file },
-        )
+    private fun createPrefs(fileName: String = "test_prefs.preferences_pb"): FilterPreferences {
+        val file = tempFolder.newFile(fileName)
+        val dataStore = PreferenceDataStoreFactory.create(produceFile = { file })
         return FilterPreferences.forTest(dataStore)
     }
 
@@ -41,43 +42,65 @@ class FilterPreferencesTest {
 
         assertFalse(prefs.filterEnabled.first())
         assertEquals(AllowedRotations.Default, prefs.allowedRotations.first())
-        assertFalse(prefs.forceSystemAutoRotate.first())
+        assertEquals(HorizontalMode.LANDSCAPE_90, prefs.horizontalMode.first())
         assertNull(prefs.savedAccelerometerRotation.first())
         assertFalse(prefs.systemAutoRotateAtEnable.first())
     }
 
     @Test
-    fun allowedRotationsPersistIndependently() = runTest {
+    fun horizontalModePersists() = runTest {
         val prefs = createPrefs()
 
-        prefs.setAllowedRotations(
-            AllowedRotations(
-                portrait = true,
-                landscape = false,
-                reverseLandscape = true,
-            ),
-        )
+        prefs.setHorizontalMode(HorizontalMode.REVERSE_LANDSCAPE_270)
 
         assertEquals(
-            AllowedRotations(
-                portrait = true,
-                landscape = false,
-                reverseLandscape = true,
-            ),
+            AllowedRotations(HorizontalMode.REVERSE_LANDSCAPE_270),
             prefs.allowedRotations.first(),
+        )
+        assertEquals(setOf(0, 3), prefs.allowedRotations.first().toSet())
+    }
+
+    private fun createStore(fileName: String) =
+        PreferenceDataStoreFactory.create(produceFile = { File(tempFolder.root, fileName) })
+
+    @Test
+    fun migratesLegacyBothOffToLandscape90() = runTest {
+        val store = createStore("legacy_off_off.preferences_pb")
+        store.edit { prefs ->
+            prefs[KEY_ALLOW_PORTRAIT] = false
+            prefs[KEY_ALLOW_LANDSCAPE] = false
+            prefs[KEY_ALLOW_REVERSE_PORTRAIT] = false
+            prefs[KEY_ALLOW_REVERSE_LANDSCAPE] = false
+        }
+        val legacyPrefs = FilterPreferences.forTest(store)
+
+        assertEquals(
+            AllowedRotations(HorizontalMode.LANDSCAPE_90),
+            legacyPrefs.allowedRotations.first(),
         )
     }
 
     @Test
-    fun cannotDisableLastRotation() = runTest {
-        val prefs = createPrefs()
-
-        prefs.setAllowedRotations(AllowedRotations(portrait = true, landscape = false))
-        prefs.setRotationToggle(AllowedRotations.TOGGLE_PORTRAIT, enabled = false)
+    fun migratesLegacyOnly270ToReverseLandscape270() = runTest {
+        val store = createStore("legacy_270.preferences_pb")
+        store.edit { prefs ->
+            prefs[KEY_ALLOW_PORTRAIT] = true
+            prefs[KEY_ALLOW_LANDSCAPE] = false
+            prefs[KEY_ALLOW_REVERSE_PORTRAIT] = false
+            prefs[KEY_ALLOW_REVERSE_LANDSCAPE] = true
+        }
+        val legacyPrefs = FilterPreferences.forTest(store)
 
         assertEquals(
-            AllowedRotations(portrait = true, landscape = false),
-            prefs.allowedRotations.first(),
+            AllowedRotations(HorizontalMode.REVERSE_LANDSCAPE_270),
+            legacyPrefs.allowedRotations.first(),
         )
+    }
+
+    companion object {
+        private val KEY_ALLOW_PORTRAIT = booleanPreferencesKey("allow_portrait")
+        private val KEY_ALLOW_LANDSCAPE = booleanPreferencesKey("allow_landscape")
+        private val KEY_ALLOW_REVERSE_PORTRAIT = booleanPreferencesKey("allow_reverse_portrait")
+        private val KEY_ALLOW_REVERSE_LANDSCAPE = booleanPreferencesKey("allow_reverse_landscape")
     }
 }

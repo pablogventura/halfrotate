@@ -12,6 +12,7 @@ package dev.pablo.halfrotate.data
 
 import android.content.Context
 import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
@@ -19,8 +20,8 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dev.pablo.halfrotate.rotation.AllowedRotations
+import dev.pablo.halfrotate.rotation.HorizontalMode
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
@@ -37,26 +38,10 @@ class FilterPreferences private constructor(
     }
 
     val allowedRotations: Flow<AllowedRotations> = dataStore.data.map { prefs ->
-        when {
-            prefs.contains(KEY_ALLOW_LANDSCAPE) || prefs.contains(KEY_ALLOW_REVERSE_LANDSCAPE) ->
-                AllowedRotations(
-                    portrait = prefs[KEY_ALLOW_PORTRAIT] ?: true,
-                    landscape = prefs[KEY_ALLOW_LANDSCAPE] ?: true,
-                    reversePortrait = prefs[KEY_ALLOW_REVERSE_PORTRAIT] ?: false,
-                    reverseLandscape = prefs[KEY_ALLOW_REVERSE_LANDSCAPE] ?: false,
-                )
-            prefs.contains(KEY_ALLOW_HORIZONTAL) -> AllowedRotations.fromBundledHorizontal(
-                portrait = prefs[KEY_ALLOW_PORTRAIT] ?: true,
-                horizontal = prefs[KEY_ALLOW_HORIZONTAL] ?: true,
-                upsideDown = prefs[KEY_ALLOW_UPSIDE_DOWN] ?: false,
-            )
-            else -> AllowedRotations.fromLegacyPreset(prefs[KEY_ORIENTATION_PRESET])
-        }
+        readAllowedRotations(prefs)
     }
 
-    val forceSystemAutoRotate: Flow<Boolean> = dataStore.data.map { prefs ->
-        prefs[KEY_FORCE_SYSTEM_AUTO_ROTATE] ?: false
-    }
+    val horizontalMode: Flow<HorizontalMode> = allowedRotations.map { it.horizontalMode }
 
     val savedAccelerometerRotation: Flow<Int?> = dataStore.data.map { prefs ->
         if (prefs.contains(KEY_SAVED_ACCELEROMETER)) {
@@ -76,36 +61,14 @@ class FilterPreferences private constructor(
         }
     }
 
+    suspend fun setHorizontalMode(mode: HorizontalMode) {
+        dataStore.edit { prefs ->
+            writeHorizontalMode(prefs, mode)
+        }
+    }
+
     suspend fun setAllowedRotations(allowed: AllowedRotations) {
-        require(!allowed.isEmpty()) { "At least one rotation must be enabled" }
-        dataStore.edit { prefs ->
-            prefs[KEY_ALLOW_PORTRAIT] = allowed.portrait
-            prefs[KEY_ALLOW_LANDSCAPE] = allowed.landscape
-            prefs[KEY_ALLOW_REVERSE_PORTRAIT] = allowed.reversePortrait
-            prefs[KEY_ALLOW_REVERSE_LANDSCAPE] = allowed.reverseLandscape
-            prefs.remove(KEY_ALLOW_HORIZONTAL)
-            prefs.remove(KEY_ALLOW_UPSIDE_DOWN)
-            prefs.remove(KEY_ORIENTATION_PRESET)
-        }
-    }
-
-    suspend fun setRotationToggle(toggle: Int, enabled: Boolean) {
-        val current = allowedRotations.first()
-        val updated = when (toggle) {
-            AllowedRotations.TOGGLE_PORTRAIT -> current.copy(portrait = enabled)
-            AllowedRotations.TOGGLE_LANDSCAPE -> current.copy(landscape = enabled)
-            AllowedRotations.TOGGLE_REVERSE_PORTRAIT -> current.copy(reversePortrait = enabled)
-            AllowedRotations.TOGGLE_REVERSE_LANDSCAPE -> current.copy(reverseLandscape = enabled)
-            else -> return
-        }
-        if (updated.isEmpty()) return
-        setAllowedRotations(updated)
-    }
-
-    suspend fun setForceSystemAutoRotate(force: Boolean) {
-        dataStore.edit { prefs ->
-            prefs[KEY_FORCE_SYSTEM_AUTO_ROTATE] = force
-        }
+        setHorizontalMode(allowed.horizontalMode)
     }
 
     suspend fun saveAccelerometerState(wasEnabled: Boolean, rotationValue: Int) {
@@ -128,16 +91,49 @@ class FilterPreferences private constructor(
 
         private val KEY_FILTER_ENABLED = booleanPreferencesKey("filter_enabled")
         private val KEY_ORIENTATION_PRESET = stringPreferencesKey("orientation_preset")
+        private val KEY_HORIZONTAL_MODE = stringPreferencesKey("horizontal_mode")
         private val KEY_ALLOW_PORTRAIT = booleanPreferencesKey("allow_portrait")
         private val KEY_ALLOW_HORIZONTAL = booleanPreferencesKey("allow_horizontal")
         private val KEY_ALLOW_UPSIDE_DOWN = booleanPreferencesKey("allow_upside_down")
         private val KEY_ALLOW_LANDSCAPE = booleanPreferencesKey("allow_landscape")
         private val KEY_ALLOW_REVERSE_PORTRAIT = booleanPreferencesKey("allow_reverse_portrait")
         private val KEY_ALLOW_REVERSE_LANDSCAPE = booleanPreferencesKey("allow_reverse_landscape")
-        private val KEY_FORCE_SYSTEM_AUTO_ROTATE =
-            booleanPreferencesKey("force_system_auto_rotate")
         private val KEY_SAVED_ACCELEROMETER = intPreferencesKey("saved_accelerometer_rotation")
         private val KEY_SYSTEM_AUTO_ROTATE_AT_ENABLE =
             booleanPreferencesKey("system_auto_rotate_at_enable")
+
+        private fun readAllowedRotations(prefs: Preferences): AllowedRotations {
+            prefs[KEY_HORIZONTAL_MODE]?.let { name ->
+                return AllowedRotations(
+                    horizontalMode = HorizontalMode.valueOf(name),
+                )
+            }
+            return when {
+                prefs.contains(KEY_ALLOW_LANDSCAPE) || prefs.contains(KEY_ALLOW_REVERSE_LANDSCAPE) ->
+                    AllowedRotations.fromLegacyFlags(
+                        portrait = prefs[KEY_ALLOW_PORTRAIT] ?: true,
+                        landscape = prefs[KEY_ALLOW_LANDSCAPE] ?: true,
+                        reversePortrait = prefs[KEY_ALLOW_REVERSE_PORTRAIT] ?: false,
+                        reverseLandscape = prefs[KEY_ALLOW_REVERSE_LANDSCAPE] ?: false,
+                    )
+                prefs.contains(KEY_ALLOW_HORIZONTAL) -> AllowedRotations.fromBundledHorizontal(
+                    portrait = prefs[KEY_ALLOW_PORTRAIT] ?: true,
+                    horizontal = prefs[KEY_ALLOW_HORIZONTAL] ?: true,
+                    upsideDown = prefs[KEY_ALLOW_UPSIDE_DOWN] ?: false,
+                )
+                else -> AllowedRotations.fromLegacyPreset(prefs[KEY_ORIENTATION_PRESET])
+            }
+        }
+
+        private fun writeHorizontalMode(prefs: MutablePreferences, mode: HorizontalMode) {
+            prefs[KEY_HORIZONTAL_MODE] = mode.name
+            prefs[KEY_ALLOW_PORTRAIT] = true
+            prefs[KEY_ALLOW_LANDSCAPE] = mode == HorizontalMode.LANDSCAPE_90
+            prefs[KEY_ALLOW_REVERSE_PORTRAIT] = false
+            prefs[KEY_ALLOW_REVERSE_LANDSCAPE] = mode == HorizontalMode.REVERSE_LANDSCAPE_270
+            prefs.remove(KEY_ALLOW_HORIZONTAL)
+            prefs.remove(KEY_ALLOW_UPSIDE_DOWN)
+            prefs.remove(KEY_ORIENTATION_PRESET)
+        }
     }
 }

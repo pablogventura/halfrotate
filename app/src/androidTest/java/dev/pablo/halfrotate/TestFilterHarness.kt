@@ -14,7 +14,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.test.platform.app.InstrumentationRegistry
-import dev.pablo.halfrotate.rotation.AllowedRotations
+import dev.pablo.halfrotate.rotation.HorizontalMode
 import dev.pablo.halfrotate.service.FilterServiceManager
 import dev.pablo.halfrotate.testing.TestFilterReceiver
 
@@ -48,23 +48,11 @@ object TestFilterHarness {
         waitForServiceRunning(running = false)
     }
 
-    fun setAllowedRotations(allowed: AllowedRotations) {
+    fun setHorizontalMode(mode: HorizontalMode) {
         context.sendBroadcast(
-            Intent(TestFilterReceiver.ACTION_SET_ALLOWED).apply {
+            Intent(TestFilterReceiver.ACTION_SET_HORIZONTAL_MODE).apply {
                 setPackage(PACKAGE)
-                putExtra(TestFilterReceiver.EXTRA_PORTRAIT, allowed.portrait)
-                putExtra(TestFilterReceiver.EXTRA_LANDSCAPE, allowed.landscape)
-                putExtra(TestFilterReceiver.EXTRA_REVERSE_PORTRAIT, allowed.reversePortrait)
-                putExtra(TestFilterReceiver.EXTRA_REVERSE_LANDSCAPE, allowed.reverseLandscape)
-            },
-        )
-    }
-
-    fun setForceAutoRotate(force: Boolean) {
-        context.sendBroadcast(
-            Intent(TestFilterReceiver.ACTION_SET_FORCE_AUTO_ROTATE).apply {
-                setPackage(PACKAGE)
-                putExtra(TestFilterReceiver.EXTRA_FORCE, force)
+                putExtra(TestFilterReceiver.EXTRA_HORIZONTAL_MODE, mode.name)
             },
         )
     }

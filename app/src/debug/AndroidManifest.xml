@@ -8,8 +8,7 @@
             <intent-filter>
                 <action android:name="dev.pablo.halfrotate.test.ENABLE_FILTER" />
                 <action android:name="dev.pablo.halfrotate.test.DISABLE_FILTER" />
-                <action android:name="dev.pablo.halfrotate.test.SET_PRESET" />
-                <action android:name="dev.pablo.halfrotate.test.SET_FORCE_AUTO_ROTATE" />
+                <action android:name="dev.pablo.halfrotate.test.SET_HORIZONTAL_MODE" />
             </intent-filter>
         </receiver>
     </application>

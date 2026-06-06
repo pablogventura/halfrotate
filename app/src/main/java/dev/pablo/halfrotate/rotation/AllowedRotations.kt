@@ -10,49 +10,49 @@
 
 package dev.pablo.halfrotate.rotation
 
-data class AllowedRotations(
-    val portrait: Boolean = true,
-    val landscape: Boolean = true,
-    val reversePortrait: Boolean = false,
-    val reverseLandscape: Boolean = false,
-) {
-    fun toSet(): Set<Int> = buildSet {
-        if (portrait) add(RotationLogic.ROTATION_PORTRAIT)
-        if (landscape) add(RotationLogic.ROTATION_LANDSCAPE)
-        if (reversePortrait) add(RotationLogic.ROTATION_REVERSE_PORTRAIT)
-        if (reverseLandscape) add(RotationLogic.ROTATION_REVERSE_LANDSCAPE)
+enum class HorizontalMode {
+    LANDSCAPE_90,
+    REVERSE_LANDSCAPE_270,
+    ;
+
+    fun userRotation(): Int = when (this) {
+        LANDSCAPE_90 -> RotationLogic.ROTATION_LANDSCAPE
+        REVERSE_LANDSCAPE_270 -> RotationLogic.ROTATION_REVERSE_LANDSCAPE
     }
+}
 
-    fun isEmpty(): Boolean =
-        !portrait && !landscape && !reversePortrait && !reverseLandscape
+data class AllowedRotations(
+    val horizontalMode: HorizontalMode = HorizontalMode.LANDSCAPE_90,
+) {
+    val portrait: Boolean get() = true
+    val reversePortrait: Boolean get() = false
+    val landscape: Boolean get() = horizontalMode == HorizontalMode.LANDSCAPE_90
+    val reverseLandscape: Boolean get() = horizontalMode == HorizontalMode.REVERSE_LANDSCAPE_270
 
-    fun enabledCount(): Int =
-        listOf(portrait, landscape, reversePortrait, reverseLandscape).count { it }
+    fun toSet(): Set<Int> = setOf(
+        RotationLogic.ROTATION_PORTRAIT,
+        horizontalMode.userRotation(),
+    )
 
     companion object {
         val Default = AllowedRotations()
 
-        const val TOGGLE_PORTRAIT = 0
-        const val TOGGLE_LANDSCAPE = 1
-        const val TOGGLE_REVERSE_PORTRAIT = 2
-        const val TOGGLE_REVERSE_LANDSCAPE = 3
+        fun fromLegacyFlags(
+            portrait: Boolean,
+            landscape: Boolean,
+            reversePortrait: Boolean,
+            reverseLandscape: Boolean,
+        ): AllowedRotations {
+            val horizontal = when {
+                landscape && !reverseLandscape -> HorizontalMode.LANDSCAPE_90
+                !landscape && reverseLandscape -> HorizontalMode.REVERSE_LANDSCAPE_270
+                else -> HorizontalMode.LANDSCAPE_90
+            }
+            return AllowedRotations(horizontalMode = horizontal)
+        }
 
         fun fromLegacyPreset(name: String?): AllowedRotations = when (name) {
-            "PortraitOnly" -> AllowedRotations(
-                portrait = true,
-                landscape = false,
-                reverseLandscape = false,
-            )
-            "LandscapeOnly" -> AllowedRotations(
-                portrait = false,
-                landscape = true,
-                reverseLandscape = false,
-            )
-            "AllExceptUpsideDown" -> AllowedRotations(
-                portrait = true,
-                landscape = true,
-                reverseLandscape = true,
-            )
+            "LandscapeOnly" -> AllowedRotations(HorizontalMode.LANDSCAPE_90)
             else -> Default
         }
 
@@ -60,11 +60,15 @@ data class AllowedRotations(
             portrait: Boolean,
             horizontal: Boolean,
             upsideDown: Boolean,
-        ): AllowedRotations = AllowedRotations(
-            portrait = portrait,
-            landscape = horizontal,
-            reversePortrait = upsideDown,
-            reverseLandscape = horizontal,
-        )
+        ): AllowedRotations {
+            if (!horizontal) {
+                return if (upsideDown) {
+                    AllowedRotations(HorizontalMode.REVERSE_LANDSCAPE_270)
+                } else {
+                    Default
+                }
+            }
+            return Default
+        }
     }
 }

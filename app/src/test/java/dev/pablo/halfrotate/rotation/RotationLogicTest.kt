@@ -17,52 +17,52 @@ import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 
 @RunWith(Parameterized::class)
-class RotationLogicCorrectionTest(
-    private val allowed: Set<Int>,
-    private val forbidden: Int,
+class RotationPolicyMatrixTest(
+    private val mode: HorizontalMode,
+    private val physicalBucket: Int,
     private val expected: Int,
 ) {
+
+    private val allowed = AllowedRotations(mode).toSet()
 
     @Test
     fun correctionForDisallowed() {
         assertEquals(
             expected,
-            RotationLogic.correctionForDisallowed(forbidden, allowed, lastAllowed = null),
+            RotationLogic.correctionForDisallowed(physicalBucket, allowed),
+        )
+    }
+
+    @Test
+    fun targetRotationForSensor() {
+        val degrees = physicalBucket * RotationLogic.ORIENTATION_DEGREES_90
+        assertEquals(
+            expected,
+            RotationLogic.targetRotationForSensor(
+                degrees = degrees,
+                currentRotation = RotationLogic.ROTATION_PORTRAIT,
+                allowed = allowed,
+                lastAllowed = null,
+            ),
         )
     }
 
     companion object {
-        private val portraitAnd90 = AllowedRotations.Default.toSet()
-        private val portraitAnd270 = AllowedRotations(
-            portrait = true,
-            landscape = false,
-            reverseLandscape = true,
-        ).toSet()
-        private val reverseLandscapeOnly = AllowedRotations(
-            portrait = false,
-            landscape = false,
-            reverseLandscape = true,
-        ).toSet()
-        private val landscape90Only = AllowedRotations(
-            portrait = false,
-            landscape = true,
-        ).toSet()
-        private val bothHorizontals = AllowedRotations(
-            landscape = true,
-            reverseLandscape = true,
-        ).toSet()
-
         @JvmStatic
-        @Parameterized.Parameters(name = "allowed={0} forbidden={1} -> {2}")
+        @Parameterized.Parameters(name = "mode={0} physical={1} -> {2}")
         fun data(): Collection<Array<Any>> = listOf(
-            arrayOf(portraitAnd90, 3, 0),
-            arrayOf(portraitAnd90, 2, 1),
-            arrayOf(portraitAnd270, 1, 0),
-            arrayOf(reverseLandscapeOnly, 1, 3),
-            arrayOf(landscape90Only, 3, 1),
-            arrayOf(bothHorizontals, 1, 1),
-            arrayOf(bothHorizontals, 3, 3),
+            row(HorizontalMode.LANDSCAPE_90, 0, 0),
+            row(HorizontalMode.LANDSCAPE_90, 1, 1),
+            row(HorizontalMode.LANDSCAPE_90, 2, 0),
+            row(HorizontalMode.LANDSCAPE_90, 3, 0),
+            row(HorizontalMode.REVERSE_LANDSCAPE_270, 0, 0),
+            row(HorizontalMode.REVERSE_LANDSCAPE_270, 1, 0),
+            row(HorizontalMode.REVERSE_LANDSCAPE_270, 2, 0),
+            row(HorizontalMode.REVERSE_LANDSCAPE_270, 3, 3),
         )
+
+        private fun row(mode: HorizontalMode, physical: Int, expected: Int): Array<Any> =
+            arrayOf(mode, physical, expected)
     }
 }
 
@@ -98,12 +98,8 @@ class RotationLogicTest {
     }
 
     @Test
-    fun targetRotationForSensor_maps90toPortraitWhenOnly270AllowedWithPortrait() {
-        val allowed = AllowedRotations(
-            portrait = true,
-            landscape = false,
-            reverseLandscape = true,
-        ).toSet()
+    fun targetRotationForSensor_maps90toPortraitWhenOnly270Allowed() {
+        val allowed = AllowedRotations(HorizontalMode.REVERSE_LANDSCAPE_270).toSet()
         assertEquals(
             0,
             RotationLogic.targetRotationForSensor(
@@ -113,12 +109,5 @@ class RotationLogicTest {
                 lastAllowed = 0,
             ),
         )
-    }
-
-    @Test
-    fun circularDistance() {
-        assertEquals(1, RotationLogic.circularDistance(0, 1))
-        assertEquals(1, RotationLogic.circularDistance(0, 3))
-        assertEquals(2, RotationLogic.circularDistance(0, 2))
     }
 }

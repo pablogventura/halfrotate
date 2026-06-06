@@ -27,46 +27,14 @@ object RotationLogic {
 
     fun isAllowed(rotation: Int, allowed: Set<Int>): Boolean = rotation in allowed
 
-    fun circularDistance(a: Int, b: Int): Int {
-        val diff = abs(a - b)
-        return min(diff, 4 - diff)
-    }
-
-    fun nearestAllowed(
-        rotation: Int,
-        allowed: Set<Int>,
-        lastAllowed: Int?,
-    ): Int = correctionForDisallowed(rotation, allowed, lastAllowed)
-
-    /**
-     * Maps a disallowed rotation to an allowed one.
-     *
-     * Policy:
-     * - 90° and 270° never substitute for each other when one is disabled.
-     * - A disabled horizontal snaps to portrait (0°) when portrait is allowed.
-     * - Otherwise pick the nearest allowed bucket on the ring; tie-break with [lastAllowed].
-     */
     fun correctionForDisallowed(
         rotation: Int,
         allowed: Set<Int>,
         lastAllowed: Int? = null,
     ): Int {
         if (rotation in allowed) return rotation
-        if (allowed.isEmpty()) return ROTATION_PORTRAIT
-
-        if (rotation.isHorizontal() && ROTATION_PORTRAIT in allowed) {
-            return ROTATION_PORTRAIT
-        }
-
-        return allowed.minWith(
-            compareBy<Int>({ circularDistance(rotation, it) })
-                .thenBy { if (lastAllowed != null) circularDistance(it, lastAllowed) else it }
-                .thenBy { it },
-        )
+        return ROTATION_PORTRAIT
     }
-
-    private fun Int.isHorizontal(): Boolean =
-        this == ROTATION_LANDSCAPE || this == ROTATION_REVERSE_LANDSCAPE
 
     fun orientationEventToRotation(orientation: Int): Int? {
         if (orientation == ORIENTATION_UNKNOWN || orientation !in 0..359) return null

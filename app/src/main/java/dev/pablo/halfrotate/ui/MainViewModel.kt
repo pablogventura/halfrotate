@@ -14,17 +14,12 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dev.pablo.halfrotate.HalfRotateApp
-import dev.pablo.halfrotate.R
-import dev.pablo.halfrotate.rotation.AllowedRotations
-import dev.pablo.halfrotate.rotation.RotationController
-import dev.pablo.halfrotate.rotation.RotationLogic
-import dev.pablo.halfrotate.rotation.RotationMonitor
+import dev.pablo.halfrotate.rotation.HorizontalMode
 import dev.pablo.halfrotate.service.FilterServiceManager
 import dev.pablo.halfrotate.util.PermissionsHelper
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -34,16 +29,8 @@ data class MainUiState(
     val serviceStartFailed: Boolean = false,
     val writeSettingsGranted: Boolean = false,
     val notificationGranted: Boolean = true,
-    val autoRotateEnabled: Boolean = false,
-    val currentRotation: Int = RotationLogic.ROTATION_PORTRAIT,
-    val allowedRotations: AllowedRotations = AllowedRotations.Default,
-    val forceSystemAutoRotate: Boolean = false,
-    val systemAutoRotateAtEnable: Boolean = false,
-    val showAbout: Boolean = false,
+    val horizontalMode: HorizontalMode = HorizontalMode.LANDSCAPE_90,
 ) {
-    val pausedBecauseAutoRotateOff: Boolean =
-        appActive && !forceSystemAutoRotate && !systemAutoRotateAtEnable
-
     val canEnableApp: Boolean =
         writeSettingsGranted && notificationGranted
 }
@@ -51,30 +38,15 @@ data class MainUiState(
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val context = application.applicationContext
-    private val controller = RotationController(context)
     private val prefs = (application as HalfRotateApp).filterPreferences
 
     private val _uiState = MutableStateFlow(MainUiState())
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
 
-    private var monitor: RotationMonitor? = null
-
     init {
         viewModelScope.launch {
-            combine(
-                prefs.allowedRotations,
-                prefs.forceSystemAutoRotate,
-                prefs.systemAutoRotateAtEnable,
-            ) { allowed, force, atEnable ->
-                ConfigSnapshot(allowed, force, atEnable)
-            }.collect { snapshot ->
-                _uiState.update { state ->
-                    state.copy(
-                        allowedRotations = snapshot.allowed,
-                        forceSystemAutoRotate = snapshot.forceAutoRotate,
-                        systemAutoRotateAtEnable = snapshot.systemAutoRotateAtEnable,
-                    )
-                }
+            prefs.horizontalMode.collect { mode ->
+                _uiState.update { it.copy(horizontalMode = mode) }
             }
         }
     }
@@ -82,64 +54,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun onResume() {
         viewModelScope.launch {
             val sync = FilterServiceManager.syncRunningState(context)
-            _uiState.update { state ->
-                state.copy(
-                    serviceStartFailed = sync == FilterServiceManager.SyncResult.StartFailed,
-                )
-            }
-            updateStatus()
-            startUiMonitor()
+            updateStatus(
+                serviceStartFailed = sync == FilterServiceManager.SyncResult.StartFailed,
+            )
         }
     }
 
-    fun onPause() {
-        monitor?.stop()
-        monitor = null
-    }
-
-    private fun startUiMonitor() {
-        monitor?.stop()
-        monitor = RotationMonitor(context) {
-            val appActive = FilterServiceManager.isRunning(context)
-            val rotation = if (appActive) {
-                controller.getUserRotation()
-            } else {
-                controller.getDisplayRotation()
-            }
-            _uiState.update { state ->
-                state.copy(
-                    appActive = appActive,
-                    currentRotation = rotation,
-                    autoRotateEnabled = if (appActive) {
-                        state.forceSystemAutoRotate || state.systemAutoRotateAtEnable
-                    } else {
-                        controller.isAutoRotateEnabled()
-                    },
-                )
-            }
-        }.also { it.start() }
-    }
-
-    fun updateStatus() {
+    fun updateStatus(serviceStartFailed: Boolean? = null) {
         viewModelScope.launch {
-            val allowed = prefs.allowedRotations.first()
-            val force = prefs.forceSystemAutoRotate.first()
-            val atEnable = prefs.systemAutoRotateAtEnable.first()
+            val mode = prefs.horizontalMode.first()
             val appActive = FilterServiceManager.isRunning(context)
             _uiState.update { current ->
                 current.copy(
                     appActive = appActive,
                     writeSettingsGranted = PermissionsHelper.canWriteSettings(context),
                     notificationGranted = PermissionsHelper.hasNotificationPermission(context),
-                    autoRotateEnabled = if (appActive) force || atEnable else controller.isAutoRotateEnabled(),
-                    currentRotation = if (appActive) {
-                        controller.getUserRotation()
-                    } else {
-                        controller.getDisplayRotation()
-                    },
-                    allowedRotations = allowed,
-                    forceSystemAutoRotate = force,
-                    systemAutoRotateAtEnable = atEnable,
+                    horizontalMode = mode,
+                    serviceStartFailed = serviceStartFailed ?: current.serviceStartFailed,
                 )
             }
         }
@@ -163,35 +94,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun setRotationToggle(toggle: Int, enabled: Boolean) {
+    fun setHorizontalMode(mode: HorizontalMode) {
         viewModelScope.launch {
-            prefs.setRotationToggle(toggle, enabled)
+            prefs.setHorizontalMode(mode)
             FilterServiceManager.notifyConfigChanged(context)
         }
     }
-
-    fun setForceSystemAutoRotate(force: Boolean) {
-        viewModelScope.launch {
-            prefs.setForceSystemAutoRotate(force)
-            FilterServiceManager.notifyConfigChanged(context)
-        }
-    }
-
-    fun showAbout(show: Boolean) {
-        _uiState.update { it.copy(showAbout = show) }
-    }
-
-    fun rotationLabelRes(rotation: Int): Int = when (rotation) {
-        RotationLogic.ROTATION_PORTRAIT -> R.string.rotation_0
-        RotationLogic.ROTATION_LANDSCAPE -> R.string.rotation_90
-        RotationLogic.ROTATION_REVERSE_PORTRAIT -> R.string.rotation_180
-        RotationLogic.ROTATION_REVERSE_LANDSCAPE -> R.string.rotation_270
-        else -> R.string.rotation_unknown
-    }
-
-    private data class ConfigSnapshot(
-        val allowed: AllowedRotations,
-        val forceAutoRotate: Boolean,
-        val systemAutoRotateAtEnable: Boolean,
-    )
 }
